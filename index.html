@@ -1,0 +1,2650 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="阴阳师御魂沙盒：6 星御魂随便买、随便强化，召唤按公示概率和保底模拟。玩家自制的非官方工具，数据取自游戏客户端配置表。">
+<title>御魂沙盒</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 布局：桌面左栏「买 + 强化台」固定，右栏是仓库网格；手机上按 买 → 强化台 → 仓库 竖排。色调沿用本仓库网页的「靛纸 + 墨 + 朱 / 群青 / 金」，
+   御魂按副属性条数用游戏里的 灰/绿/蓝/紫/橙 五档（ghost_rune/BTN_FW_* 边框的顺序） */
+:root {
+  --bg: #eef0f4;
+  --fg: #1b1e2c;
+  --muted: #5b617a;
+  --surface: #ffffff;
+  --surface-2: #e4e7ef;
+  --line: #cdd2de;
+  --red: #c4372c;
+  --red-soft: #f6dcd8;
+  --blue: #2e6db0;
+  --blue-soft: #d9e6f5;
+  --gold: #b7860f;
+  --gold-soft: #f3e6bf;
+  --t0: #8a8f9e;
+  --t1: #3d8a57;
+  --t2: #2e6db0;
+  --t3: #7a4cb0;
+  --t4: #c26a12;
+  --on-tier: #ffffff;
+  --r-r: #6f7890;
+  --r-sr: #2e6db0;
+  --r-ssr: #b7860f;
+  --r-sp: #c4372c;
+  --r-ur: #8a3fb8;
+  --chart-1: #2e6db0;   /* 统计图的「实际」：浅色 #2e6db0、深色 #5794d9，都过了 dataviz 的配色校验（亮度带、对比度） */
+  --chart-dist: #8d95a8; /* 抽卡统计里「所有人」的分布（中性灰，对底色 3:1）：深色 #6f7890 */
+  --font-display: "ZCOOL XiaoWei", "STKaiti", "KaiTi", "Kaiti SC", "Noto Serif SC", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13161f; --fg: #e8e6de; --muted: #9aa0b6; --surface: #1c2030; --surface-2: #262b3d; --line: #343a50;
+    --red: #e2574c; --red-soft: #4a2622; --blue: #5e9be0; --blue-soft: #1f3450; --gold: #e0b24a; --gold-soft: #4a3b14;
+    --t0: #8d93a8; --t1: #5cb87d; --t2: #5e9be0; --t3: #a983e6; --t4: #ec9a48; --on-tier: #11141c;
+    --r-r: #9aa3ba; --r-sr: #5e9be0; --r-ssr: #e0b24a; --r-sp: #e2574c; --r-ur: #b77be6;
+    --chart-1: #5794d9; --chart-dist: #6f7890;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --chart-1: #5794d9; --chart-dist: #6f7890;
+  --bg: #13161f; --fg: #e8e6de; --muted: #9aa0b6; --surface: #1c2030; --surface-2: #262b3d; --line: #343a50;
+  --red: #e2574c; --red-soft: #4a2622; --blue: #5e9be0; --blue-soft: #1f3450; --gold: #e0b24a; --gold-soft: #4a3b14;
+  --t0: #8d93a8; --t1: #5cb87d; --t2: #5e9be0; --t3: #a983e6; --t4: #ec9a48; --on-tier: #11141c;
+  --r-r: #9aa3ba; --r-sr: #5e9be0; --r-ssr: #e0b24a; --r-sp: #e2574c; --r-ur: #b77be6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); }
+body { color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.6; margin: 0; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 22px 56px; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- 头部 ---------- */
+header { display: grid; gap: 6px; }
+header .top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(32px, 5vw, 46px); letter-spacing: .06em; margin: 0; line-height: 1.15; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.src { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; white-space: nowrap; }
+.tabs { display: flex; gap: 6px; padding-block: 14px 14px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 16px; }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* ---------- 通用部件 ---------- */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.panel > h2, .panel-h h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; letter-spacing: .03em; }
+.panel-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+.field { display: grid; gap: 4px; }
+.field > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+select, input[type=number], input[type=text], textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+select { width: 100%; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 4px 10px; min-width: 36px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.seg button:disabled { opacity: .45; cursor: default; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 14px; }
+.btn:hover:not(:disabled) { border-color: var(--fg); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--red); border-color: var(--red); color: #fff; font-weight: 700; letter-spacing: .1em; }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--red); }
+.btn.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, var(--line)); }
+.btn.small { padding: 3px 10px; font-size: 13px; border-radius: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 6px 20px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 14px; }
+.tile { display: grid; }
+.tile b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 600; }
+.tile span { font-size: 12px; color: var(--muted); }
+.tile small { font-size: 12px; color: var(--muted); }
+
+/* ---------- 御魂页布局 ---------- */
+.yh-layout { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 14px; }
+.yh-left { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+#store { align-self: start; }
+#bench { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 10px); max-height: calc(100vh - 20px); overflow-y: auto; scrollbar-width: thin; }
+@media (max-width: 900px) {
+  .yh-layout { grid-template-columns: minmax(0, 1fr); }
+  #bench { position: static; max-height: none; overflow: visible; }
+}
+.buy { display: grid; gap: 10px; }
+.buy .go { display: flex; gap: 10px; align-items: center; }
+.buy .go .btn.primary { flex: 1; font-size: 17px; padding-block: 9px; }
+
+/* 位置徽章：六边形，按副属性条数上色 */
+.hex { --tier: var(--t0); flex: 0 0 auto; width: 28px; height: 32px; display: grid; place-items: center; background: var(--tier); color: var(--on-tier);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); font-family: var(--font-display); font-size: 15px; line-height: 1; }
+.t0 { --tier: var(--t0); } .t1 { --tier: var(--t1); } .t2 { --tier: var(--t2); } .t3 { --tier: var(--t3); } .t4 { --tier: var(--t4); }
+.hex.big { width: 46px; height: 52px; font-size: 24px; }
+.tier-name { font-size: 12px; color: var(--tier); font-weight: 700; letter-spacing: .08em; }
+
+/* 强化台 */
+.bench-empty { color: var(--muted); padding: 18px 4px; text-align: center; }
+.bench-head { display: flex; gap: 12px; align-items: center; }
+.bench-head .nm { display: grid; min-width: 0; }
+.bench-head .nm b { font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1.1; }
+.bench-head .lvl { margin-left: auto; font-family: var(--font-mono); font-size: 26px; font-weight: 600; }
+.mainline { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 2px 6px; border-bottom: 1px dashed var(--line); margin-top: 8px; }
+.mainline span { color: var(--muted); }
+.mainline b { font-family: var(--font-mono); font-size: 20px; }
+.sublist { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.sublist li { display: grid; grid-template-columns: max-content minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 4px; border-radius: 6px; }
+.sublist li .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.sublist li.hit { animation: hit 1.1s ease-out; }
+@keyframes hit { 0% { background: var(--gold-soft); } 100% { background: transparent; } }
+.pips { display: flex; gap: 3px; flex-wrap: wrap; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--line); display: block; }
+.pips i.on { background: var(--tier); border-color: var(--tier); }
+.coefs { grid-column: 2 / 4; font-size: 11.5px; color: var(--muted); font-family: var(--font-mono); margin-top: -2px; }
+.coefs .nexthit { color: var(--blue); }
+.nextnote { margin-top: 6px; }
+.lvbar { display: grid; grid-template-columns: repeat(15, 1fr); gap: 2px; margin: 12px 0 4px; }
+.lvbar i { height: 8px; border-radius: 2px; background: var(--surface-2); display: block; }
+.lvbar i.on { background: var(--gold); }
+.lvbar i.mark { height: 12px; margin-top: -2px; }
+.lvlabels { display: grid; grid-template-columns: repeat(5, 1fr); font-size: 11px; color: var(--muted); text-align: right; font-family: var(--font-mono); }
+.bench-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.bench-actions .grow { flex: 1 1 auto; }
+.cost { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.log { list-style: none; margin: 10px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 2px; font-size: 12.5px; }
+.log li { display: flex; gap: 8px; }
+.log li .num { color: var(--muted); min-width: 2.6em; }
+.log .new { color: var(--blue); }
+.setfx { font-size: 12.5px; color: var(--muted); margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.setfx b { color: var(--fg); font-weight: 500; }
+.float { position: fixed; pointer-events: none; z-index: 20; font-family: var(--font-mono); font-weight: 700; color: var(--gold); animation: up 1.2s ease-out forwards; }
+@keyframes up { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-34px); opacity: 0; } }
+
+/* 仓库 */
+.store-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; margin-bottom: 10px; }
+.store-tools .wide { grid-column: 1 / -1; }
+.store-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.store-meta .count { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .yh { padding: 7px 7px 6px; } .yh ul, .yh .mn { font-size: 12px; } }
+.yh { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 9px 7px; display: grid; gap: 4px; min-width: 0; }
+.yh:hover { border-color: var(--muted); }
+.yh[aria-pressed="true"] { border-color: var(--fg); box-shadow: 0 0 0 1px var(--fg); }
+.yh.multi[aria-pressed="true"] { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); background: color-mix(in srgb, var(--blue) 8%, var(--surface)); }
+.tick { flex: 0 0 auto; width: 16px; height: 16px; border: 1.5px solid var(--line); border-radius: 4px; display: grid; place-items: center; font-size: 11px; line-height: 1; color: #fff; }
+.yh.picked .tick { background: var(--blue); border-color: var(--blue); }
+.selbar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 5; display: grid; gap: 6px; padding: 9px 10px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--blue); border-radius: 10px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+.selbar .row { gap: 6px 8px; }
+.selbar select { width: auto; }
+.selbar .chk { white-space: nowrap; }
+.yh .hd { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.yh .hd b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yh .hd .lv { margin-left: auto; font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.yh .mn { font-size: 12.5px; display: flex; justify-content: space-between; color: var(--muted); }
+.yh .mn b { color: var(--fg); font-family: var(--font-mono); font-weight: 600; }
+.yh .fx { font-size: 12px; display: flex; justify-content: space-between; color: var(--red); border-bottom: 1px dashed var(--line); padding-bottom: 2px; }
+.yh .fx b { font-weight: 600; }
+.fxline { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 2px; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.fxline span { color: var(--muted); }
+.fxline b { color: var(--red); font-family: var(--font-mono); font-size: 16px; }
+.yh ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; font-size: 12.5px; }
+.yh li { display: flex; justify-content: space-between; gap: 6px; }
+.yh li .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.yh li.hi .v { color: var(--gold); font-weight: 600; }
+/* 成长次数「+N」和这一次强化的标记 */
+.gr { font-style: normal; font-family: var(--font-mono); font-weight: 600; font-size: .92em; color: var(--blue); margin-left: 3px; }
+.mk { font-style: normal; font-size: 10.5px; font-weight: 700; color: #1b1408; background: var(--gold); border-radius: 3px; padding: 0 3px; margin-left: 4px; vertical-align: 1px; white-space: nowrap; }
+.yh li.up, .sublist li.up { background: var(--gold-soft); border-radius: 4px; }
+.yh li.up { margin-inline: -3px; padding-inline: 3px; }
+.sublist li .nm2 { white-space: nowrap; }
+.yh .ft { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); min-height: 1.3em; }
+.badge { font-size: 11px; border-radius: 4px; padding: 0 5px; border: 1px solid var(--line); color: var(--muted); }
+.badge.lock { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, var(--line)); }
+.badge.new { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, var(--line)); }
+.more { display: flex; justify-content: center; padding-top: 12px; }
+.empty { color: var(--muted); padding: 30px 8px; text-align: center; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; }
+.records { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+.records button { border: 0; background: none; padding: 0; color: var(--fg); text-decoration: underline dotted; text-underline-offset: 3px; font-family: var(--font-mono); }
+.savebar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.savebar .hint { flex: 1 1 260px; }
+.importbox { display: grid; gap: 6px; margin-top: 8px; }
+.importbox textarea { width: 100%; min-height: 80px; font-family: var(--font-mono); font-size: 12px; }
+
+/* 提示条 */
+.toasts { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%); display: grid; gap: 6px; z-index: 30; width: min(92vw, 460px); pointer-events: none; }
+.toast { background: var(--fg); color: var(--bg); border-radius: 10px; padding: 9px 14px; font-size: 13.5px; box-shadow: 0 6px 20px rgba(0,0,0,.18); animation: tin .25s ease-out; }
+.toast.gold { background: var(--gold); color: #1b1408; font-weight: 700; }
+@keyframes tin { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- 召唤页 ---------- */
+.g-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 14px; align-items: start; }
+@media (max-width: 900px) { .g-layout { grid-template-columns: minmax(0, 1fr); } }
+.g-main { display: grid; gap: 12px; }
+.g-opts { display: grid; gap: 10px; }
+.g-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-actions .btn.primary { min-width: 120px; }
+.g-status { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 10px 2px; border-block: 1px dashed var(--line); }
+.cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.card { --rc: var(--r-r); border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: grid; gap: 3px; min-height: 84px; background: var(--surface); min-width: 0; animation: tin .3s ease-out both; }
+.card .rar { font-family: var(--font-mono); font-weight: 600; font-size: 12px; color: var(--rc); letter-spacing: .04em; }
+.card .who { font-size: 14.5px; font-weight: 500; overflow-wrap: anywhere; line-height: 1.3; }
+.card .tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.card .line { font-size: 11px; color: var(--muted); line-height: 1.35; }
+.card.R { --rc: var(--r-r); } .card.SR { --rc: var(--r-sr); }
+.card.SSR, .card.SP, .card.UR { border-color: var(--rc); box-shadow: inset 0 0 0 1px var(--rc); }
+.card.SSR { --rc: var(--r-ssr); background: color-mix(in srgb, var(--r-ssr) 9%, var(--surface)); }
+.card.SP { --rc: var(--r-sp); background: color-mix(in srgb, var(--r-sp) 8%, var(--surface)); }
+.card.UR { --rc: var(--r-ur); background: color-mix(in srgb, var(--r-ur) 10%, var(--surface)); }
+.card.R .who, .card.SR .who { color: var(--muted); font-size: 13px; }
+.tag { font-size: 11px; border-radius: 4px; padding: 0 5px; background: var(--surface-2); color: var(--fg); }
+.tag.up { background: var(--gold); color: #1b1408; }
+.tag.pity { background: var(--blue-soft); color: var(--fg); }
+.g-side { display: grid; gap: 14px; }
+.hist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 340px; overflow-y: auto; font-size: 13px; }
+.hist li { display: grid; grid-template-columns: 4.2em 2.8em 1fr; gap: 6px; }
+.hist li .n { font-family: var(--font-mono); color: var(--muted); text-align: right; }
+.hist li .r { font-family: var(--font-mono); font-weight: 600; }
+.coll { display: flex; flex-wrap: wrap; gap: 4px; max-height: 300px; overflow-y: auto; }
+.coll span { font-size: 12.5px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+.coll span.SSR { border-color: var(--r-ssr); } .coll span.SP { border-color: var(--r-sp); } .coll span.UR { border-color: var(--r-ur); }
+.coll span em { font-style: normal; color: var(--muted); font-family: var(--font-mono); margin-left: 3px; }
+.miles { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; }
+.miles li { display: grid; grid-template-columns: 3.6em minmax(0, 1fr); gap: 8px; color: var(--muted); }
+.curvebox { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.curvebox .hint { margin-bottom: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chips span { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.chips span em { font-style: normal; color: var(--muted); margin-right: 4px; }
+.miles li.done { color: var(--fg); }
+.miles li.done .num::after { content: " ✓"; color: var(--gold); }
+.sim { font-size: 13px; }
+.curve { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.curve td, .curve th { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: right; font-family: var(--font-mono); font-weight: 400; }
+.curve th { text-align: left; color: var(--muted); font-family: var(--font-body); }
+.curve tr.now td { color: var(--gold); font-weight: 600; }
+
+/* ---------- 规则页 ---------- */
+.rules { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); align-items: start; }
+.rules h3 { font-family: var(--font-display); font-weight: 400; font-size: 20px; margin: 0 0 6px; }
+.rules p, .rules li { color: var(--fg); max-width: 72ch; }
+.rules ul { padding-left: 1.2em; margin: 6px 0; }
+.rules .muted { color: var(--muted); }
+.tblwrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.t th, table.t td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+table.t th { color: var(--muted); font-weight: 500; font-size: 12px; }
+table.t td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+code { font-family: var(--font-mono); font-size: 12px; background: var(--surface-2); border-radius: 4px; padding: 0 4px; }
+
+/* ---------- 自定义御魂 ---------- */
+.cdlg { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--surface); color: var(--fg); width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+.cdlg::backdrop { background: rgba(10, 12, 20, .5); }
+.cdlg-body { display: grid; gap: 12px; padding: 16px 16px 0; }
+.cd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cd-head h2 { font-family: var(--font-display); font-weight: 400; font-size: 24px; margin: 0; letter-spacing: .03em; }
+.cdlg h3 { font-family: var(--font-display); font-weight: 400; font-size: 18px; margin: 4px 0 -4px; }
+.cd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px 10px; }
+.cd-rows { display: grid; gap: 8px; }
+.cd-row { display: grid; grid-template-columns: 2.6em minmax(0, 1fr) minmax(0, 9.5em); gap: 2px 8px; align-items: center; }
+.cd-row .cd-idx { font-family: var(--font-mono); color: var(--muted); text-align: right; }
+.cd-row input { width: 100%; }
+.cd-row .cd-range { grid-column: 2 / 4; font-size: 11.5px; color: var(--muted); }
+.cd-row .cd-range.bad { color: var(--red); }
+.cdlg input.bad { border-color: var(--red); color: var(--red); }
+.cd-prev { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px; background: var(--surface-2); border-radius: 10px; }
+.cd-pside { display: grid; gap: 8px; justify-items: start; }
+.cd-foot { position: sticky; bottom: 0; z-index: 3; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 0 16px; background: var(--surface); border-top: 1px solid var(--line); }
+.cd-foot .btn.primary { flex: 1 1 160px; }
+.cd-n { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.cd-n > span { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.cd-n label { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--muted); }
+.cd-n input { width: 7.5em; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.cd-n .hint.bad { color: var(--red); }
+@media (max-width: 560px) {
+  .cdlg { width: 100vw; max-width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+  .cd-prev { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- 套装搜索 ---------- */
+.setq { width: 100%; }
+.setq-n { min-height: 1.1em; font-size: 11.5px; }
+.setq-n.bad { color: var(--red); }
+.cd-set { grid-column: span 2; }
+@media (max-width: 560px) { .cd-set { grid-column: auto; } }
+
+/* ---------- 批量强化统计 ---------- */
+.rp-tiles { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.rp-tile { display: grid; }
+.rp-tile b { font-size: 20px; font-weight: 600; line-height: 1.3; }
+.rp-tile span { font-size: 12px; color: var(--muted); }
+.rp-luck { margin: 0; font-size: 13.5px; }
+.rp-luck .luck { padding: 0 6px; border-radius: 4px; background: var(--surface-2); }
+.rp-luck .luck.up { background: var(--gold-soft); }
+.rp-luck .luck.down { background: var(--blue-soft); }
+.rp-sec { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rp-sec h3 { margin: 0; }
+.rp-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin: 0; }
+.rp-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--chart-1); vertical-align: -1px; margin-right: 5px; }
+.rp-legend .ln { display: inline-block; width: 14px; height: 2px; background: var(--fg); vertical-align: 3px; margin-right: 5px; }
+.vchart { display: grid; gap: 4px; }
+.vc-plot { position: relative; height: 150px; margin-top: 20px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border-bottom: 1px solid var(--line); }
+.vc-col { position: relative; height: 100%; border-radius: 6px; }
+.vc-col:hover, .vc-col:focus-visible { background: color-mix(in srgb, var(--chart-1) 7%, transparent); }
+.vc-bar { position: absolute; bottom: 0; left: 50%; width: min(24px, 55%); transform: translateX(-50%); background: var(--chart-1); border-radius: 4px 4px 0 0; }
+.vc-exp { position: absolute; left: 50%; width: min(36px, 80%); height: 2px; transform: translate(-50%, 1px); background: var(--fg); }
+.vc-cap { position: absolute; left: 0; right: 0; text-align: center; font-size: 11.5px; color: var(--muted); transform: translateY(-3px); white-space: nowrap; }
+.vc-x { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); text-align: center; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+.hchart { display: grid; gap: 3px; }
+.hc-row { display: grid; grid-template-columns: 5em minmax(0, 1fr) 4.5em; gap: 8px; align-items: center; font-size: 12.5px; border-radius: 4px; }
+.hc-row:hover, .hc-row:focus-visible { background: color-mix(in srgb, var(--chart-1) 7%, transparent); }
+.hc-lab { white-space: nowrap; }
+.hc-track { position: relative; height: 18px; }
+.hc-bar { position: absolute; left: 0; top: 3px; height: 12px; background: var(--chart-1); border-radius: 0 4px 4px 0; }
+.hc-exp { position: absolute; top: 0; width: 2px; height: 18px; background: var(--fg); transform: translateX(-1px); }
+.hc-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+.rp-table summary { cursor: pointer; font-size: 12.5px; color: var(--muted); width: max-content; }
+.rp-table table { margin-top: 4px; }
+.rp-top { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.rp-auto { padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.rtip { position: fixed; z-index: 40; pointer-events: none; background: var(--fg); color: var(--bg); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; line-height: 1.5; white-space: pre-line; max-width: 240px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
+.btn.chip { border-color: var(--blue); color: var(--blue); }
+
+/* ---------- 抽卡统计 ---------- */
+.vc-bar.dist { background: var(--chart-dist); width: min(22px, 70%); }
+.vc-you { position: absolute; top: -16px; bottom: 0; width: 2px; margin-left: -1px; background: var(--chart-1); pointer-events: none; }
+.vc-you > span { position: absolute; top: -3px; left: 6px; font-size: 11.5px; line-height: 1.2; color: var(--fg); white-space: nowrap; }
+.vc-you.flip > span { left: auto; right: 6px; }
+.dchart .vc-x span { overflow: visible; white-space: nowrap; }
+.rp-legend .sw.dist { background: var(--chart-dist); }
+.rp-legend .ln.you, .rp-legend .ln.tk { width: 2px; height: 12px; background: var(--chart-1); vertical-align: -2px; }
+.rp-legend .ln.tk.ink { background: var(--fg); }
+.rp-legend .ring { display: inline-block; width: 9px; height: 9px; border: 2px solid var(--chart-1); border-radius: 50%; vertical-align: -1px; margin-right: 5px; box-sizing: border-box; }
+.tl { position: relative; height: 58px; margin: 18px 6px 0; border-bottom: 1px solid var(--line); }
+.tl-t { position: absolute; bottom: 0; width: 10px; margin-left: -5px; height: 60%; }
+.tl-t::before { content: ''; position: absolute; left: 4px; bottom: 0; width: 2px; height: 100%; background: var(--chart-1); border-radius: 1px 1px 0 0; }
+.tl-t.ur { height: 76%; }
+.tl-t.ur::after { content: ''; position: absolute; left: 1px; top: -8px; width: 8px; height: 8px; border: 2px solid var(--chart-1); border-radius: 50%; box-sizing: border-box; background: var(--surface); }
+.tl-t.up { height: 100%; z-index: 1; }
+.tl-t.up::before { background: var(--fg); }
+.tl-t.up > span { position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, -2px); font-size: 11.5px; color: var(--fg); white-space: nowrap; }
+.tl-t:hover::before { left: 3px; width: 4px; }
+.tl-x { display: flex; justify-content: space-between; margin: 3px 6px 0; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>御魂沙盒</h1>
+      <span class="src" id="src"></span>
+    </div>
+    <p>离线自娱自乐版：6 星御魂随便买、随便强化，副属性按客户端里的随机规则出；召唤按客户端公示概率、阶段曲线和保底跑。存档只放在这个浏览器里。玩家自制的非官方工具，和网易无关。</p>
+    <nav class="tabs" role="tablist" aria-label="页面">
+      <button class="tab" role="tab" id="tab-yh" aria-controls="p-yh" aria-selected="true">御魂</button>
+      <button class="tab" role="tab" id="tab-g" aria-controls="p-g" aria-selected="false">召唤</button>
+      <button class="tab" role="tab" id="tab-rules" aria-controls="p-rules" aria-selected="false">规则</button>
+    </nav>
+  </header>
+
+  <!-- ================= 御魂 ================= -->
+  <section id="p-yh" role="tabpanel" aria-labelledby="tab-yh">
+    <div class="tiles" id="yh-tiles"></div>
+    <div class="yh-layout">
+      <div class="yh-left">
+        <div class="panel buy" id="buy">
+          <div class="panel-h"><h2>买御魂</h2><span class="hint">不要钱，随便买</span></div>
+          <div class="field"><span>套装</span><input type="search" class="setq" id="b-setq" placeholder="搜：名字、拼音首字母或效果，如 破势 / ps / 眩晕" autocomplete="off" spellcheck="false" aria-label="搜套装"><select id="b-set" aria-label="套装"></select><span class="hint setq-n" id="b-setq-n"></span></div>
+          <div class="field"><span>位置</span><div class="seg" id="b-pos"></div></div>
+          <label class="field"><span>主属性</span><select id="b-main"></select></label>
+          <label class="field" id="b-fx-wrap" hidden><span>固有属性（只有首领御魂有）</span><select id="b-fx"></select></label>
+          <div class="field"><span>品质</span><div class="seg" id="b-kind">
+            <button type="button" data-v="0" aria-pressed="true">普通（初始 2~4 条）</button>
+            <button type="button" data-v="1" aria-pressed="false">珍品（初始 4 条）</button>
+          </div></div>
+          <div class="field"><span>数量</span><div class="seg" id="b-num">
+            <button type="button" data-v="1" aria-pressed="true">1</button>
+            <button type="button" data-v="10" aria-pressed="false">10</button>
+            <button type="button" data-v="100" aria-pressed="false">100</button>
+            <button type="button" data-v="1000" aria-pressed="false">1000</button>
+            <button type="button" data-v="10000" aria-pressed="false">1万</button>
+          </div></div>
+          <div class="field"><span>强化规则（副属性满 4 条后提升哪条）</span><div class="seg" id="b-rule">
+            <button type="button" data-v="flat" aria-pressed="true">各 1/4（默认）</button>
+            <button type="button" data-v="dyn" aria-pressed="false">动态权重</button>
+          </div><p class="hint" id="b-rule-note"></p></div>
+          <label class="chk"><input type="checkbox" id="b-max"> 买完直接强化到 +15</label>
+          <div class="go"><button class="btn primary" id="b-go" type="button">买</button><button class="btn" id="b-custom" type="button">自定义…</button></div>
+        </div>
+        <div class="panel" id="bench" aria-live="polite"></div>
+      </div>
+
+      <div class="panel" id="store">
+        <div class="panel-h"><h2>仓库</h2><span class="hint" id="st-count"></span></div>
+        <div class="records" id="records"></div>
+        <div class="store-tools">
+          <div class="field"><span>套装</span><input type="search" class="setq" id="f-setq" placeholder="搜套装" autocomplete="off" spellcheck="false" aria-label="搜套装"><select id="f-set" aria-label="按套装筛选"></select><span class="hint setq-n" id="f-setq-n"></span></div>
+          <label class="field"><span>位置</span><select id="f-pos"></select></label>
+          <label class="field"><span>主属性</span><select id="f-main"></select></label>
+          <label class="field"><span>带这条副属性</span><select id="f-sub"></select></label>
+          <label class="field"><span>等级</span><select id="f-lv">
+            <option value="all">全部</option><option value="0">+0（没强化）</option><option value="mid">+1 ~ +14</option><option value="15">+15</option>
+          </select></label>
+          <label class="field"><span>副属性条数</span><select id="f-cnt">
+            <option value="all">全部</option><option value="4">4 条（传说）</option><option value="3">3 条（极品）</option><option value="2">2 条（稀有）</option><option value="1">1 条（精品）</option><option value="0">没有副属性</option>
+          </select></label>
+          <label class="field"><span>固有属性（首领）</span><select id="f-fx"></select></label>
+          <label class="field"><span>排序</span><select id="f-sort"></select></label>
+        </div>
+        <div class="store-meta">
+          <label class="chk"><input type="checkbox" id="f-lock"> 只看锁定的</label>
+          <div class="row" id="batch"></div>
+        </div>
+        <div class="selbar" id="selbar" hidden></div>
+        <div class="grid" id="grid"></div>
+        <div class="more" id="more"></div>
+        <div class="savebar">
+          <p class="hint"><span id="sv-mode">存档放在这个浏览器里。</span>清理浏览器数据或换设备会丢，想留着就导出一份。 <span id="sv-status" class="num"></span></p>
+          <button class="btn small" id="sv-export" type="button">导出存档</button>
+          <button class="btn small" id="sv-import" type="button">导入存档</button>
+          <span id="sv-clear"></span>
+        </div>
+        <div class="importbox" id="importbox" hidden>
+          <input type="file" id="imp-file" accept=".json,application/json">
+          <span class="hint">或者把存档文本粘贴到下面：</span>
+          <textarea id="imp-text" spellcheck="false"></textarea>
+          <div class="row"><button class="btn small" id="imp-go" type="button">导入（会替换当前存档）</button><button class="btn small" id="imp-cancel" type="button">取消</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 召唤 ================= -->
+  <section id="p-g" role="tabpanel" aria-labelledby="tab-g" hidden>
+    <div class="g-layout">
+      <div class="panel g-main">
+        <div class="panel-h"><h2 id="g-title">召唤</h2><span class="hint" id="g-sub"></span></div>
+        <div class="seg" id="g-mode">
+          <button type="button" data-v="sakuya" aria-pressed="true">咲耶 · 限时 UP</button>
+          <button type="button" data-v="normal" aria-pressed="false">常驻召唤</button>
+          <button type="button" data-v="ten" aria-pressed="false">十连十金</button>
+        </div>
+        <div class="g-opts" id="g-opts"></div>
+        <div class="g-actions" id="g-actions"></div>
+        <div class="g-status" id="g-status"></div>
+        <div class="cards" id="g-cards"></div>
+        <div class="sim" id="g-sim"></div>
+      </div>
+      <div class="g-side">
+        <div class="panel"><div class="panel-h"><h2>出货记录</h2><span class="hint" id="g-hist-n"></span></div><ul class="hist" id="g-hist"></ul></div>
+        <div class="panel"><div class="panel-h"><h2>图鉴</h2><span class="hint" id="g-coll-n"></span></div><div class="coll" id="g-coll"></div></div>
+        <div class="panel" id="g-miles-box"><div class="panel-h"><h2>阶段奖励</h2><span class="hint">按累计召唤次数</span></div><ul class="miles" id="g-miles"></ul><div class="curvebox" id="g-curve"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 规则 ================= -->
+  <section id="p-rules" role="tabpanel" aria-labelledby="tab-rules" hidden>
+    <div class="rules" id="rules"></div>
+  </section>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<dialog id="cdlg" class="cdlg" aria-label="自定义御魂"><div id="cdlg-body" class="cdlg-body"></div></dialog>
+<dialog id="rdlg" class="cdlg rdlg" aria-label="批量强化统计"><div id="rdlg-body" class="cdlg-body"></div><div class="rtip" id="rp-tip" role="tooltip" hidden></div></dialog>
+<dialog id="gdlg" class="cdlg rdlg" aria-label="抽卡统计"><div id="gdlg-body" class="cdlg-body"></div><div class="rtip" id="gp-tip" role="tooltip" hidden></div></dialog>
+
+<script id="data" type="application/json">{"built":"客户端配置表（2026-10-14）","stats":[{"k":"hp","attr":"maxHpAdditionVal","name":"生命","pct":false,"unit":114},{"k":"def","attr":"defenseAdditionVal","name":"防御","pct":false,"unit":5},{"k":"atk","attr":"attackAdditionVal","name":"攻击","pct":false,"unit":27},{"k":"hpp","attr":"maxHpAdditionRate","name":"生命加成","pct":true,"unit":0.03},{"k":"defp","attr":"defenseAdditionRate","name":"防御加成","pct":true,"unit":0.03},{"k":"atkp","attr":"attackAdditionRate","name":"攻击加成","pct":true,"unit":0.03},{"k":"spd","attr":"speedAdditionVal","name":"速度","pct":false,"unit":3},{"k":"cri","attr":"critRateAdditionVal","name":"暴击","pct":true,"unit":0.03},{"k":"cdm","attr":"critPowerAdditionVal","name":"暴击伤害","pct":true,"unit":0.04},{"k":"hit","attr":"debuffEnhance","name":"效果命中","pct":true,"unit":0.04},{"k":"res","attr":"debuffResist","name":"效果抵抗","pct":true,"unit":0.04}],"subPool":[["hp",10],["def",10],["atk",10],["hpp",10],["defp",10],["atkp",10],["spd",10],["cri",10],["cdm",10],["hit",10],["res",10]],"enhPool":[["hp",10],["def",10],["atk",10],["hpp",10],["defp",10],["atkp",10],["spd",10],["cri",10],["cdm",10],["hit",10],["res",10]],"enhLevels":[3,6,9,12,15],"coef":[0.8,1.0],"enhCoef":[0.8,1.0],"initCount":[2,4],"zhenpinCount":[4,4],"mains":{"1":[{"k":"atk","w":19,"base":81.0}],"2":[{"k":"atkp","w":9,"base":0.1},{"k":"defp","w":9,"base":0.1},{"k":"hpp","w":9,"base":0.1},{"k":"spd","w":3,"base":12.0}],"3":[{"k":"def","w":19,"base":14.0}],"4":[{"k":"atkp","w":18,"base":0.1},{"k":"defp","w":18,"base":0.1},{"k":"hpp","w":18,"base":0.1},{"k":"hit","w":3,"base":0.1},{"k":"res","w":3,"base":0.1}],"5":[{"k":"hp","w":19,"base":342.0}],"6":[{"k":"atkp","w":18,"base":0.1},{"k":"defp","w":18,"base":0.1},{"k":"hpp","w":18,"base":0.1},{"k":"cdm","w":3,"base":0.14},{"k":"cri","w":3,"base":0.1}]},"growth":{"hp":[0,114.0,228.0,342.0,456.0,570.0,684.0,798.0,912.0,1026.0,1140.0,1254.0,1368.0,1482.0,1596.0,1710.0],"def":[0,6.0,12.0,18.0,24.0,30.0,36.0,42.0,48.0,54.0,60.0,66.0,72.0,78.0,84.0,90.0],"atk":[0,27.0,54.0,81.0,108.0,135.0,162.0,189.0,216.0,243.0,270.0,297.0,324.0,351.0,378.0,405.0],"hpp":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45],"defp":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45],"atkp":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45],"spd":[0,3.0,6.0,9.0,12.0,15.0,18.0,21.0,24.0,27.0,30.0,33.0,36.0,39.0,42.0,45.0],"cri":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45],"cdm":[0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75],"hit":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45],"res":[0,0.03,0.06,0.09,0.12,0.15,0.18,0.21,0.24,0.27,0.3,0.33,0.36,0.39,0.42,0.45]},"exp":[3500,5250,7000,8750,10500,12250,14000,15750,17500,19250,21000,22750,24500,26250,28000],"qjg":{"exp":78750,"gold":94500,"name":"六星青吉鬼"},"glutGold":2.0,"titles":["","精品","稀有","极品","传说"],"posCn":["壹","贰","叁","肆","伍","陆"],"sets":[{"id":300002,"n":"雪幽魂","boss":false,"two":[["defp",0.3]],"d2":"","d4":"造成伤害时，有15%（若目标带有减速效果则为30%）基础概率冰冻1回合；受到攻击时，使攻击者减速30点，持续1回合。","way":"探索副本-第七章 / 御魂副本-周一（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300003,"n":"地藏像","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"受到暴击时，自身100%、友方30%概率获得1回合护盾，能吸收10%生命上限的伤害；对被嘲讽目标降低60%触发概率。","way":"御魂副本-周一（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300004,"n":"蝠翼","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"造成伤害时，附带20%吸血。","way":"大蛇悲鸣-周四（主）/六/日 / 探索副本-第四章 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300006,"n":"涅槃之火","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"行动结束时，若生命比例低于30%，治疗生命上限15%的生命。","way":"探索副本-第八章 / 御魂副本-周二（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300007,"n":"三味","boss":false,"two":[["cri",0.15]],"d2":"","d4":"任一友方承受控制效果和放逐时，使其提升30点速度，持续2回合，此增益效果不可驱散，可叠加2层。","way":"御魂副本-周二（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300008,"n":"魍魉之匣","boss":false,"two":[["res",0.15]],"d2":"","d4":"造成伤害时，有25%基础概率随机附加眩晕、沉默、减疗40%、混乱，持续1回合。","way":"探索副本-第十五章 / 御魂副本-周三（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300009,"n":"被服","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"30%减伤。","way":"探索副本-第一章 / 御魂副本-周三（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300010,"n":"招财猫","boss":false,"two":[["defp",0.3]],"d2":"","d4":"回合开始时，有50%的概率获得2点鬼火。","way":"探索副本-第十六章 / 御魂副本-周二（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300011,"n":"反枕","boss":false,"two":[["defp",0.3]],"d2":"","d4":"造成伤害时，有23%基础概率使目标沉睡1回合。","way":"探索副本-第十七章 / 御魂副本-周四（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300012,"n":"轮入道","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"回合结束时，有20%概率获得新的回合。","way":"大蛇悲鸣-周三（主）/六/日 / 探索副本-第六章 / 御魂副本-周六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300013,"n":"日女巳时","boss":false,"two":[["defp",0.3]],"d2":"","d4":"造成伤害时，有20%概率击退目标30%行动条，若其带有增益状态、印记，触发概率提升10%。","way":"探索副本-第二十五章 / 御魂副本-周五（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300014,"n":"镜姬","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"受到伤害时，有30%概率造成100%反伤；对被嘲讽目标降低60%触发概率。","way":"探索副本-第九章 / 御魂副本-周五（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300015,"n":"钟灵","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"造成伤害时，有10%基础概率使目标眩晕1回合。若敌方无人处于眩晕中，则基础概率改为20%。","way":"探索副本-第十二章 / 御魂副本-周五（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300018,"n":"狰","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"受到敌方伤害时，有35%概率反击；对被嘲讽目标降低60%触发概率。","way":"探索副本-第五章 / 御魂副本-周二（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300019,"n":"火灵","boss":false,"two":[["hit",0.15]],"d2":"","d4":"战斗开始时，获得3点鬼火。","way":"御魂副本-周六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300020,"n":"鸣屋","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"攻击时，若目标带有控制效果，提升45%伤害。","way":"探索副本-第十三章 / 御魂副本-周一（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300021,"n":"薙魂","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"唯一效果。友方被攻击时50%概率守护，使其中的单体伤害降低20%，再分担50%，直到攻击结束。每次攻击最多触发一次。","way":"探索副本-第二十章 / 御魂副本-业原火 / 其他相关活动随机掉落"},{"id":300022,"n":"心眼","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"造成伤害时，目标生命比例每降低15%，提升10%伤害。","way":"探索副本-第十章 / 御魂副本-周四（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300023,"n":"木魅","boss":false,"two":[["defp",0.3]],"d2":"","d4":"任何友方受到伤害时，有25%概率削减伤害者1点鬼火，单次攻击内最多触发1次；对被嘲讽目标降低60%触发概率。","way":"探索副本-第十九章 / 御魂副本-业原火 / 其他相关活动随机掉落"},{"id":300024,"n":"树妖","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"治疗时，增加20%（若目标生命低于20%，改为增加50%）基础治疗。","way":"探索副本-第十八章 / 御魂副本-周四（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300026,"n":"网切","boss":false,"two":[["cri",0.15]],"d2":"","d4":"攻击时，50%概率无视45%防御。","way":"探索副本-第十四章 / 御魂副本-周一（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300027,"n":"阴摩罗","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"击败目标时，获得3点鬼火。","way":"探索副本-第三章 / 御魂副本-周三（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300029,"n":"伤魂鸟","boss":false,"two":[["cri",0.15]],"d2":"","d4":"任一非怪物目标阵亡时，治疗生命上限20%的生命，并提升20%伤害（上限120%）直到战斗结束。","way":"探索副本-第二十二章 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300030,"n":"破势","boss":false,"two":[["cri",0.15]],"d2":"","d4":"造成伤害时，若目标生命比例高于70%，提升40%伤害。","way":"探索副本-第二章 / 御魂副本-周五（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300031,"n":"镇墓兽","boss":false,"two":[["cri",0.15]],"d2":"","d4":"生命比例每降低1%，提升暴击伤害的0.5%。","way":"商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300032,"n":"珍珠","boss":false,"two":[["defp",0.3]],"d2":"","d4":"治疗时，目标获得不可驱散的护盾2回合，能吸收等同基础治疗30%的伤害。","way":"探索副本-第二十三章 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300033,"n":"骰子鬼","boss":false,"two":[["res",0.15]],"d2":"","d4":"抵抗时，反击来源目标，该次反击提升50%伤害。未被控制时承受控制效果，增加25%行动条。","way":"探索副本-第二十四章 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300034,"n":"蚌精","boss":false,"two":[["hit",0.15]],"d2":"","d4":"战斗开始时，友方全体获得无法驱散的护盾1回合，能吸收等同生命上限10%的伤害。","way":"大蛇悲鸣-周一（主）/六/日 / 探索副本-第十一章 / 御魂副本-周六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300035,"n":"魅妖","boss":false,"two":[["defp",0.3]],"d2":"","d4":"造成伤害时，有25%基础概率使目标混乱1回合。","way":"御魂副本-周三（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300036,"n":"针女","boss":false,"two":[["cri",0.15]],"d2":"","d4":"暴击时，有40%概率对目标造成其生命上限10%的无视防御伤害，最高不超过攻击120%。","way":"御魂副本-周四（主）/六/日 / 商店-秘魂屋 / 其他相关活动随机掉落"},{"id":300039,"n":"返魂香","boss":false,"two":[["res",0.15]],"d2":"","d4":"受到伤害时，有25%基础概率使伤害者眩晕1回合；对被嘲讽目标降低60%触发概率。","way":"探索副本-第二十一章 / 御魂副本-业原火 / 其他相关活动随机掉落"},{"id":300048,"n":"狂骨","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"造成伤害时，每拥有1点鬼火，提升8%伤害。","way":"大蛇悲鸣-周五（主）/六/日 / 商店-秘魂屋"},{"id":300049,"n":"幽谷响","boss":false,"two":[["res",0.15]],"d2":"","d4":"抵抗控制效果时，有50%概率将该效果反弹给来源目标，且必定命中。","way":"大蛇悲鸣-周二（主）/六/日 / 商店-秘魂屋"},{"id":300050,"n":"土蜘蛛","boss":true,"two":[],"d2":"唯一被动，对怪物造成伤害时，为其附加1层土蜘蛛印记，降低10%速度，并造成10%间接伤害，持续1回合。上限3层。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300051,"n":"胧车","boss":true,"two":[],"d2":"唯一被动，受到怪物攻击时，有50%概率增加30%行动条，单次攻击内最多触发1次。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300052,"n":"荒骷髅","boss":true,"two":[],"d2":"唯一被动，提升10%对怪物伤害，若受到怪物攻击，提升伤害效果改为25%，持续1回合","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300053,"n":"地震鲶","boss":true,"two":[],"d2":"唯一被动，与怪物的战斗开始时，获得60%减伤；每次受到伤害，将6%减伤转化为提升1.5%伤害，单次攻击内最多触发1次。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300054,"n":"蜃气楼","boss":true,"two":[],"d2":"唯一被动，与怪物的战斗开始时，获得庇护。庇护会在消失后5回合重新获得。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300055,"n":"片叶之苇","boss":false,"two":[["cri",0.15]],"d2":"","d4":"当前生命等于最大生命时，造成伤害提升45%。","way":"御魂副本-虚无-周三（主）/六/日 / 商店-秘魂屋"},{"id":300056,"n":"尘冢","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"行动时获得尘冢：造成的伤害提升25%，友方非召唤物目标每比敌方多一个，伤害额外提升4%，最多提升至45%。","way":"御魂副本-虚无-周一（主）/六/日 / 商店-秘魂屋"},{"id":300057,"n":"油赤子","boss":false,"two":[["hit",0.15]],"d2":"","d4":"唯一效果。战斗开始时获得2层灵元，灵元：每层提升友方全体8%的防御，友方施放妖术时若鬼火不足，可替代等量鬼火。","way":"御魂副本-虚无-周五（主）/六/日 / 商店-秘魂屋"},{"id":300058,"n":"夜啼石","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"唯一效果。友方非召唤物目标阵亡时，获得其初始攻击、防御与生命的30% ，持续2回合（上限5层，且最多不超过携带者初始属性的150%）。","way":"御魂副本-虚无-周六/日 / 商店-秘魂屋"},{"id":300059,"n":"夜送犬","boss":false,"two":[["res",0.15]],"d2":"","d4":"每回合首次受到来自敌方的控制效果时，获得1层夜行。夜行：提升80%抵抗，上限3层，携带者回合开始处于可行动状态时移除。","way":"御魂副本-虚无-周二（主）/六/日 / 商店-秘魂屋"},{"id":300060,"n":"雨降","boss":false,"two":[["defp",0.3]],"d2":"","d4":"生命首次低于30%时，将自身生命上限降低至1点并获得3层雨露。雨露：受到伤害时，消耗1层并吸收此次行动内的所有伤害。","way":"御魂副本-虚无-周四（主）/六/日 / 商店-秘魂屋"},{"id":300073,"n":"飞缘魔","boss":false,"two":[["hit",0.15]],"d2":"","d4":"附加负面状态时，无视30%总效果抵抗。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300074,"n":"兵主部","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"回合结束后，获得1层兵刃（增益，状态）。每层将在造成伤害时无视目标75点防御，上限3层。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300075,"n":"青女房","boss":false,"two":[["cri",0.15]],"d2":"","d4":"首次受到致命伤害时，移除所有状态和印记，恢复100%生命并使自身冰封1回合，期间提升100%防御、免疫所有减益。若冰封结束时仍存活，则再次恢复100%生命。每回目仅触发一次。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300076,"n":"涂佛","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"唯一效果。回合结束时，若本回合普攻或无法动作，使友方全体提升15%效果抵抗、伤害，维持2回合，自身提升双倍。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300077,"n":"鬼灵歌伎","boss":true,"two":[],"d2":"唯一被动，每对怪物造成5次伤害后，下一次对怪物造成伤害将会对其造成生命上限20%的无视防御伤害，最高不超过攻击的255%。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300079,"n":"遗念火","boss":false,"two":[["hit",0.15]],"d2":"","d4":"携带者回合开始时获得1层念火（上限3层），每层提供15%效果抵抗，携带者施放技能时优先消耗自身念火替代等量鬼火。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300080,"n":"共潜","boss":false,"two":[["res",0.15]],"d2":"","d4":"回合结束时随机驱散己方1个负面状态，若回合中未造成伤害，则额外随机驱散己方2个负面状态。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300081,"n":"恶楼","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"战斗开始时，获得恶楼之力（增伤80%、减伤80%）。\n在携带者的前8回合，恶楼之力暂时被封禁。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300082,"n":"贝吹坊","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"携带者回合开始获得一层可以抵挡一次伤害的贝甲，贝甲存在时提高25%的伤害。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300083,"n":"海月火玉","boss":false,"two":[["cri",0.15]],"d2":"","d4":"鬼火、愿力或义火足够时，施放妖术额外消耗1点鬼火、愿力或义火并提升40%伤害。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300084,"n":"出世螺","boss":false,"two":[["defp",0.3]],"d2":"","d4":"每次受到伤害后恢复该伤害10%的生命值。在战斗开始与自身行动前获得螺壳（上限1层），单次受到超过最大生命值的60%的伤害时，将该伤害降低为最大生命值的60%，并移除螺壳。","way":"御魂副本-永生之海 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300085,"n":"火之车","boss":false,"two":[["defp",0.3]],"d2":"","d4":"携带者回合结束时，获得1层墓火，累计4层时清空层数并获得1个回合，且该回合鬼火消耗减少1点。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300086,"n":"隐念","boss":false,"two":[["atkp",0.15]],"d2":"","d4":"造成的伤害提升20%，若对同一目标重复造成伤害，造成的伤害依次提升至40%、60%，之后从20%开始循环判定。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300087,"n":"叠叩","boss":false,"two":[["hpp",0.15]],"d2":"","d4":"（唯一效果）若自身初始暴击超过120%时，全体非召唤物友方减少15%受到的暴击伤害。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300088,"n":"应声虫","boss":false,"two":[["cri",0.15]],"d2":"","d4":"携带者获得20%协战概率。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300089,"n":"元兴寺","boss":false,"two":[["hit",0.15]],"d2":"","d4":"（唯一效果）携带者回合内造成控制效果时，每命中1个目标，使全体非召唤物友方造成的伤害提升5%（单次控制重复命中同目标时，仅生效1次），最多提升40%，持续2回合。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300090,"n":"钓瓶火","boss":false,"two":[["res",0.15]],"d2":"","d4":"回合结束后，额外推进1格鬼火行动条，并为当前生命比例最低的非召唤物友方目标治疗自身防御700%的生命。","way":"御魂副本-神罚 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300091,"n":"夜荒魂","boss":true,"two":[],"d2":"唯一被动，携带者回合内对怪物造成控制效果或放逐时，每命中1个目标，使全体非召唤物友方提升15点速度（单次控制重复命中同目标时，仅生效1次），最多提升90点，维持1回合。","d4":"","way":"商店-秘魂屋 / 逢魔之时集结首领掉落 / 兑换首领御魂礼盒"},{"id":300092,"n":"无刀取","boss":false,"two":[["cdm",0.2]],"d2":"","d4":"回合结束后，永久提升15%的伤害，最高不超过45%。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300093,"n":"奉海图","boss":false,"two":[["defp",0.3]],"d2":"","d4":"唯一效果，友方受到攻击时获得海图守护，持续1回合。海图守护：降低此次伤害的30%（不超过携带者生命上限的35%）并记录，消失时失去等同于记录值的生命。","way":"御魂副本-日轮之陨 / 商店-秘魂屋 / 活动-御魂自选"},{"id":300094,"n":"八咫镜","boss":true,"two":[],"d2":"唯一效果。与怪物战斗时，造成伤害施加光灼，再次施加光灼时移除并提升20%伤害。","d4":"","way":"彼世逢魔"},{"id":300095,"n":"天羽羽斩","boss":true,"two":[],"d2":"与怪物战斗时，战斗开始获得50点无视防御。","d4":"","way":"彼世逢魔"},{"id":300096,"n":"预言星盘","boss":true,"two":[],"d2":"唯一效果。与怪物战斗时施放妖术技能，提升阴阳师暴击，提升值为自身暴击的15%。","d4":"","way":"彼世逢魔"},{"id":300097,"n":"月之石","boss":true,"two":[],"d2":"唯一效果。友方召唤物存在时，敌方怪物总效果抵抗降低30%（不超过自身初始效果抵抗的50%）。","d4":"","way":"彼世逢魔"},{"id":300098,"n":"纺缘锤","boss":true,"two":[],"d2":"战斗开始与自身每个回合开始时获得缘守。缘守：受到怪物攻击后格挡500点伤害，格挡初始防御300%的伤害后移除。","d4":"","way":"彼世逢魔"},{"id":300099,"n":"稻荷穗箭","boss":true,"two":[],"d2":"唯一效果。与怪物战斗时，回合结束后提升阴阳师10%行动条（阴阳师回合开始前限1次）。","d4":"","way":"彼世逢魔"}],"fixedAttrs":[{"id":1,"k":"atkp","v":0.08,"w":10},{"id":2,"k":"hpp","v":0.08,"w":10},{"id":3,"k":"defp","v":0.16,"w":10},{"id":4,"k":"cri","v":0.08,"w":10},{"id":5,"k":"hit","v":0.08,"w":10},{"id":6,"k":"res","v":0.08,"w":10}],"gacha":{"rates":{"R":78.65,"SR":20.0,"SSR":1.0,"SP":0.25,"UR":0.1},"heroes":{"300":["玉藻前","SSR"],"600":["市加美","SSR"],"359":["灶门炭治郎","SSR"],"236":["管狐","R"],"295":["追月神","SR"],"595":["梦山白藏主","SP"],"354":["待宵姑获鸟","SP"],"231":["鬼女红叶","SR"],"290":["小松丸","SR"],"590":["妙主九命猫","SP"],"349":["风狸","SR"],"226":["跳跳妹妹","R"],"285":["鸩","SR"],"585":["荒骷髅","SSR"],"344":["云外镜","SSR"],"221":["食发鬼","R"],"280":["辉夜姬","SSR"],"580":["晴思日和坊","SP"],"339":["烬天玉藻前","SP"],"398":["天逆每","SR"],"216":["巫蛊师","R"],"275":["万年竹","SR"],"575":["封阳君","SSR"],"334":["骁浪荒川之主","SP"],"393":["禅心云外镜","SP"],"211":["鬼使黑","SR"],"270":["络新妇","SR"],"570":["祸津神","SSR"],"329":["海忍","SR"],"388":["心狩鬼女红叶","SP"],"206":["鲤鱼精","R"],"265":["茨木童子","SSR"],"565":["福悦座敷童子","SP"],"324":["化鲸","SR"],"383":["神堕八岐大蛇","SP"],"201":["雪女","SR"],"260":["清姬","SR"],"319":["桔梗","SSR"],"378":["迦楼罗","SR"],"255":["阎魔","SSR"],"555":["渺念萤草","SP"],"314":["杀生丸","SSR"],"373":["夜刀神","SSR"],"250":["青蛙瓷器","R"],"550":["孔雀明王","SSR"],"309":["阿香","SR"],"609":["咲耶","SSR"],"368":["饴细工","SR"],"304":["御馔津","SSR"],"604":["不相狐禅","SSR"],"363":["帝释天","SSR"],"599":["蚀月吸血姬","SP"],"358":["夜溟彼岸花","SP"],"294":["奴良陆生","SSR"],"594":["梦引蝴蝶精","SP"],"353":["紧那罗","SSR"],"230":["独眼小僧","R"],"289":["兔丸","R"],"348":["浮世青行灯","SP"],"225":["跳跳弟弟","R"],"584":["时曜泷夜叉姬","SP"],"343":["天剑韧心鬼切","SP"],"220":["犬神","SR"],"279":["花鸟卷","SSR"],"579":["瑶音紧那罗","SP"],"338":["泷夜叉姬","SSR"],"397":["坂田银时","SSR"],"215":["孟婆","SR"],"274":["古笼火","R"],"574":["心友犬神","SP"],"333":["大岳丸","SSR"],"392":["季","SSR"],"210":["鬼使白","SR"],"269":["妖刀姬","SSR"],"569":["猫川","SSR"],"328":["赤影妖刀姬","SP"],"387":["嘴平伊之助","SSR"],"205":["座敷童子","R"],"264":["白狼","SR"],"564":["镜音铃·连","SSR"],"323":["天井下","R"],"382":["灵海蝶","SR"],"200":["桃花妖","SR"],"500":["神乐&定春","SSR"],"259":["小鹿男","SSR"],"559":["本真三尾狐","SP"],"318":["於菊虫","SR"],"377":["梦寻山兔","SP"],"254":["妖狐","SR"],"554":["纺愿缘结神","SP"],"313":["犬夜叉","SSR"],"372":["因幡辉夜姬","SP"],"249":["觉","R"],"308":["鬼灯","SSR"],"608":["石长姬","SSR"],"367":["绘世花鸟卷","SP"],"244":["首无","R"],"303":["弈","SR"],"603":["毗沙门天","SSR"],"362":["蝉冰雪女","SP"],"298":["薰","SR"],"598":["灼华桃花妖","SP"],"357":["初翎山风","SP"],"234":["椒图","R"],"293":["百目鬼","SR"],"593":["妖刀姬·绯夜猎刃","UR"],"352":["缚骨清姬","SP"],"288":["彼岸花","SSR"],"588":["李小狼","SSR"],"347":["缘结神","SSR"],"224":["雨女","R"],"283":["荒","SSR"],"583":["卑弥呼","SSR"],"342":["星熊童子","SR"],"219":["酒吞童子","SSR"],"278":["白童子","SR"],"578":["神酿星熊童子","SP"],"337":["黑崎一护","SSR"],"396":["修罗鬼童丸","SP"],"214":["饿鬼","R"],"273":["青坊主","SR"],"573":["龙珏","SSR"],"332":["久次良","SR"],"391":["寻香行","SSR"],"209":["河童","R"],"268":["惠比寿","SR"],"568":["龙吟铃鹿御前","SP"],"327":["苍风一目连","SP"],"386":["我妻善逸","SSR"],"263":["二口女","SR"],"563":["初音未来","SSR"],"322":["炼狱茨木童子","SP"],"258":["两面佛","SSR"],"558":["盗人神","SR"],"317":["人面树","SR"],"376":["铃彦姬","SSR"],"253":["吸血姬","SR"],"553":["闻人翊悬","SSR"],"312":["鬼切","SSR"],"371":["川猿","SR"],"248":["荒川之主","SSR"],"307":["猫掌柜","SR"],"607":["百羽凤凰火","SP"],"366":["空相面灵气","SP"],"243":["山童","R"],"302":["小袖之手","R"],"602":["天火命铃彦姬","SP"],"361":["垢尝","R"],"238":["萤草","R"],"297":["日和坊","SR"],"597":["葛叶","SSR"],"356":["千姬","SSR"],"233":["跳跳哥哥","SR"],"292":["雪童子","SSR"],"592":["平将门","SSR"],"351":["铃鹿御前","SSR"],"228":["丑时之女","R"],"287":["匣中少女","SR"],"587":["木之本樱","SSR"],"346":["聆海金鱼姬","SP"],"223":["骨女","SR"],"282":["金鱼姬","SR"],"582":["巡音流歌","SSR"],"341":["鬼王酒吞童子","SP"],"218":["鸦天狗","R"],"277":["黑童子","SR"],"577":["鬼金羊","SSR"],"336":["朽木露琪亚","SR"],"395":["流光追月神","SP"],"213":["童女","R"],"272":["一目连","SSR"],"572":["遥念烟烟罗","SP"],"331":["御怨般若","SP"],"390":["神启荒","SP"],"208":["狸猫","R"],"267":["樱花妖","SR"],"567":["申屠子夜","SSR"],"326":["稻荷神御馔津","SP"],"385":["大夜摩天阎魔","SP"],"262":["姑获鸟","SR"],"562":["鲸汐千姬","SP"],"321":["入殓师","SR"],"257":["食梦貘","SR"],"557":["伊邪那美","SSR"],"316":["白藏主","SSR"],"375":["影鳄","R"],"252":["凤凰火","SR"],"552":["慧明灯","SR"],"311":["面灵气","SSR"],"370":["饭笥","SSR"],"247":["海坊主","SR"],"306":["虫师","R"],"606":["言和","SSR"],"365":["入内雀","SR"],"242":["傀儡师","SR"],"301":["数珠","R"],"601":["思金神","SSR"],"360":["灶门祢豆子","SSR"],"237":["山兔","R"],"296":["山风","SSR"],"596":["神无月","SSR"],"355":["麓铭大岳丸","SP"],"232":["铁鼠","R"],"291":["书翁","SR"],"591":["雪御前","SSR"],"350":["蝎女","SR"],"227":["兵俑","R"],"286":["以津真天","SR"],"586":["云间不见岳","SP"],"345":["鬼童丸","SSR"],"222":["武士之灵","R"],"281":["烟烟罗","SR"],"581":["歌留多","SSR"],"340":["纸舞","SR"],"399":["言灵","SSR"],"217":["大天狗","SSR"],"276":["夜叉","SR"],"576":["夏目&猫老师","SSR"],"335":["蟹姬","SR"],"394":["月读","SSR"],"212":["童男","R"],"271":["般若","SR"],"571":["湍津姬","SR"],"330":["不知火","SSR"],"389":["须佐之男","SSR"],"207":["九命猫","R"],"266":["青行灯","SSR"],"566":["晨晖惠比寿","SP"],"325":["八岐大蛇","SSR"],"384":["粉婆婆","SR"],"202":["三尾狐","R"],"261":["镰鼬","SR"],"561":["泷","SSR"],"320":["一反木绵","SR"],"379":["不见岳","SSR"],"256":["妖琴师","SR"],"556":["天照","SSR"],"315":["少羽大天狗","SP"],"251":["判官","SR"],"551":["寻森小鹿男","SP"],"310":["蜜桃&芥子","R"],"369":["食灵","SSR"],"305":["卖药郎","SSR"],"605":["洛天依","SSR"],"364":["阿修罗","SSR"],"241":["蝴蝶精","R"]},"pool":{"R":[202,205,206,207,208,209,212,213,214,216,218,221,222,224,225,226,227,228,230,232,234,236,237,238,241,243,244,249,250,274,306],"SR":[200,201,210,211,215,220,223,231,233,242,247,251,252,253,254,256,257,260,261,262,263,264,267,268,270,271,273,276,277,278,281,282,285,286,287,290,291,293,295,297,298,303,307,318,320,321,324,332,335,340,342,349,350,365,368,371,378,382,384,398,552,558],"SSR":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,296,300,304,311,312,316,325,330,333,338,344,345,347,351,353,356,363,364,369,370,376,379,389,391,392,394,399,550,556,557,561,569,570,573,575,577,581,583,585,591,592,596,597,600,601,603,604,608],"SP":[315,322,326,327,328,331,334,339,341,343,346,348,352,354,355,357,358,362,366,367,372,377,383,385,388,390,393,395,396,551,554,555,559,562,565,566,568,572,574,578,579,580,584,586,590,594,595,598,599,602,607],"UR":[593]},"sakuya":{"id":609,"name":"咲耶","time":"10月10日维护后-10月21日23:59","title":"相逢一刻·共此辉光","pity":60,"curve":{"1":[[0,0.15],[60,0.17],[120,0.19],[180,0.25],[240,0.35],[300,0.45],[360,0.6],[420,0.8],[450,1.0]],"2":[[0,0.04],[60,0.07],[120,0.11],[180,0.15],[240,0.2],[300,0.25],[360,0.3],[420,0.4],[480,0.5],[540,0.6],[600,0.7],[660,0.8],[720,0.9],[780,1.0]]},"floor":{"1":450,"2":800},"miles":{"1":[[40,"随机SSR/SP式神×1"],[50,"神秘的符咒×5 + 三星奉为达摩×1"],[100,"神秘的符咒×5 + 自选SR×1"],[150,"神秘的符咒×5 + 四星奉为达摩×1"],[200,"神秘的符咒×5 + 契约书·御行达摩×1 + 自选SR×1 或 SSR全集赏·体验×1 + 契约书·御行达摩×1"],[250,"神秘的符咒×5 + 皮肤券×100"],[300,"神秘的符咒×5 + 勾玉×1000 + 自选SR×1"],[350,"神秘的符咒×5 + 五星奉为达摩×1"],[400,"神秘的符咒×5 + 勾玉×1000 + 自选SR×1"],[450,"神秘的符咒×5 + 契约书·御行达摩×1"],[500,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[600,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"],[700,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[800,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"],[900,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[1000,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"]],"2":[[40,"随机SSR/SP式神×1"],[50,"神秘的符咒×5 + 三星奉为达摩×1"],[100,"神秘的符咒×5 + 自选SR×1"],[150,"神秘的符咒×5 + 四星奉为达摩×1"],[200,"神秘的符咒×5 + 契约书·御行达摩×1 + 自选SR×1 或 SSR全集赏·体验×1 + 契约书·御行达摩×1"],[250,"神秘的符咒×5 + 皮肤券×100"],[300,"神秘的符咒×5 + 勾玉×1000 + 自选SR×1"],[350,"神秘的符咒×5 + 五星奉为达摩×1"],[400,"神秘的符咒×5 + 勾玉×1000 + 自选SR×1"],[450,"神秘的符咒×5 + 契约书·御行达摩×1"],[500,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[600,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"],[700,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[800,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"],[900,"神秘的符咒×10 + 契约书·御行达摩×1 + 自选SR×1"],[1000,"神秘的符咒×10 + 勾玉×500 + 自选SR×1"]]},"poolNew":[352,353,354,355,356,357,358,362,363,364,366,367,369,370,372,376,377,379,383,385,388,389,390,391,392,393,394,395,396,399,550,551,554,555,556,557,559,561,562,565,566,568,569,570,572,573,574,575,577,578,579,580,581,583,584,585,586,590,591,592,594,595,596,597,598,599,600,601,602,603,604,607,608,609],"poolOld":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,296,300,304,311,312,315,316,322,325,326,327,328,330,331,333,334,338,339,341,343,344,345,346,347,348,351,609],"bonus40":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,294,296,300,304,305,308,311,312,313,314,315,316,319,322,325,326,327,328,330,331,333,334,337,338,339,341,343,344,345,346,347,348,351,352,353,354,355,356,357,358,359,360,362,363,364,366,367,369,370,372,373,376,377,379,383,385,386,387,388,389,390,391,392,393,394,395,396,397,399,500,550,551,553,554,555,556,557,559,561,562,563,564,565,566,567,568,569,570,572,573,574,575,576,577,578,579,580,581,582,583,584,585,586,587,588,590,591,592,594,595,596,597,598,599,600,601,602,603,604,605,606,607,608,609]},"ten":{"ranges":[{"line":"平安伊始　落笔成契，与君共伴初行路途","ids":[0]},{"line":"一载相伴　风雨同渡，与君共绘不灭底色","ids":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,300]},{"line":"两载共游　阅尽悲欢，庭院深处笑语未歇","ids":[304,296,311,312,315,316]},{"line":"三载同舟　晴雨同沐，羁绊深植此方天地","ids":[322,325,326,327,328,330,331,333,334,338,339]},{"line":"四载同行　四时轮转，万象更新福运常临","ids":[341,343,344,345,346,347,348,351,352,353,354,355]},{"line":"五载相守　半生羁绊，契约常在福运绵长","ids":[356,357,358,362,363,364,366,367,369,370]},{"line":"六载同辉　阴阳交泰，河清海晏世间长安","ids":[372,376,377,379,383,385,388,389,390]},{"line":"七载连心　千劫历尽，愿得福泽常伴君侧","ids":[391,392,393,394,395,396,399,550,551,554,555,556]},{"line":"八载不负　踏遍八荒，风景常新人情常在","ids":[557,559,561,562,565,566,568,569,570,572,573,574]},{"line":"九载成契　拾光荏苒，唯愿续写十载华章","ids":[575,577,578,579,580,581,583,584,585,586,590,591]}],"pick":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,296,300,304,311,312,315,316,322,325,326,327,328,330,331,333,334,338,339,341,343,344,345,346,347,348,351,352,353,354,355,356,357,358,362,363,364,366,367,369,370,372,376,377,379,383,385,388,389,390,391,392,393,394,395,396,399,550,551,554,555,556],"random":[217,219,248,255,259,265,266,269,272,279,280,283,288,292,296,300,304,311,312,315,316,322,325,326,327,328,330,331,333,334,338,339,341,343,344,345,346,347,348,351,352,353,354,355,356,357,358,362,363,364,366,367,369,370,372,376,377,379,383,385,388,389,390,391,392,393,394,395,396,399,550,551,554,555,556,557,559,561,562,565,566,568,569,570,572,573,574,575,577,578,579,580,581,583,584,585,586,590,591,592,594,595,596,597,598,599,600,601,602,603,604,607,608,609],"pickNote":"2023年10月1日前降临的式神","randomNote":"2026年9月2日前降临的式神"}}}</script>
+<script>
+(function () {
+'use strict';
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nf = (n) => Math.round(n).toLocaleString('zh-CN');
+
+/* ======================= 规则内核（只依赖 D，不碰页面） =======================
+   一件御魂在内存里是：{ id, s 套装id, p 位置, m 主属性, lv 等级, f 标记(1 锁定 2 珍品), fx 固有属性下标(-1 没有),
+   sb 副属性每次成长的扁平数组 [属性, 系数×10000, 第几级加的, ...], le 这一次强化成长了哪些 [属性, 是否新增, ...] 或 null }
+   系数存成整数是为了 20 万件也省内存（和存档精度一样，小数点后 4 位） */
+const C10K = 10000;
+const SK = {};
+D.stats.forEach((s, i) => { s.i = i; SK[s.k] = s; });
+const SETS = {}; D.sets.forEach((s, i) => { s.i = i; SETS[s.id] = s; });
+const NORMAL_SETS = D.sets.filter((s) => !s.boss);
+const ENH = new Set(D.enhLevels);
+let RNG = Math.random;                      // 自定义御魂的示例预览会临时换成固定种子，免得每敲一个字示例就变
+const rnd = () => RNG();
+const uniform = (r) => r[0] + (r[1] - r[0]) * rnd();
+const coefInt = (r) => Math.round(uniform(r) * C10K);
+const randint = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+/** 客户端 allitem_randEquipAttr 的写法：randint(1, 总权重)，按累计权重落位 */
+function pickW(items) {
+  let tot = 0; for (const it of items) tot += it[1];
+  let r = randint(1, tot);
+  for (const it of items) { if (r <= it[1]) return it[0]; r -= it[1]; }
+  return items[items.length - 1][0];
+}
+const isLock = (y) => (y.f & 1) !== 0;
+const isZp = (y) => (y.f & 2) !== 0;
+const hasFx = (y) => y.fx >= 0;
+function setLock(y, v) { y.f = v ? (y.f | 1) : (y.f & ~1); }
+function mainValue(y) { const c = D.mains[y.p].find((x) => x.k === y.m); return c.base + D.growth[y.m][y.lv]; }
+function distinct(y) { const out = [], sb = y.sb; for (let i = 0; i < sb.length; i += 3) if (!out.includes(sb[i])) out.push(sb[i]); return out; }
+/** 有几条不同的副属性（用位掩码数，不分配数组，20 万件筛选排序时快不少） */
+function lineCount(y) { const sb = y.sb; let m = 0, n = 0; for (let i = 0; i < sb.length; i += 3) { const b = 1 << SK[sb[i]].i; if (!(m & b)) { m |= b; n++; } } return n; }
+function hasSub(y, k) { const sb = y.sb; for (let i = 0; i < sb.length; i += 3) if (sb[i] === k) return true; return false; }
+function maxRolls(y) {
+  const sb = y.sb; let best = 0;
+  for (let i = 0; i < sb.length; i += 3) { let n = 0; for (let j = 0; j < sb.length; j += 3) if (sb[j] === sb[i]) n++; if (n > best) best = n; }
+  return best;
+}
+/** 每条副属性：成长了几次、每次的系数、合计值（按出现顺序） */
+function subTotals(y) {
+  const order = [], map = {}, sb = y.sb;
+  for (let i = 0; i < sb.length; i += 3) { const k = sb[i]; if (!map[k]) { map[k] = []; order.push(k); } map[k].push(sb[i + 1] / C10K); }
+  return order.map((k) => { const rolls = map[k]; let sum = 0; for (const c of rolls) sum += c; return { k, rolls, sum, val: SK[k].unit * sum }; });
+}
+const subsOf = (y) => { const o = [], sb = y.sb; for (let i = 0; i < sb.length; i += 3) o.push([sb[i], sb[i + 1] / C10K, sb[i + 2]]); return o; };
+/** 新御魂：主属性按 equip_init.base_attr 权重；初始 rand_count 条副属性，等概率不放回，系数 rang_rand */
+function genYuhun(setId, pos, main, zhenpin, fx) {
+  const m = main || pickW(D.mains[pos].map((c) => [c.k, c.w]));
+  const range = zhenpin ? D.zhenpinCount : D.initCount;
+  const n = randint(range[0], range[1]);
+  let pool = D.subPool.slice();
+  const sb = [];
+  for (let i = 0; i < n; i++) { const k = pickW(pool); sb.push(k, coefInt(D.coef), 0); pool = pool.filter((p) => p[0] !== k); }
+  const y = { id: 0, s: setId, p: pos, m, lv: 0, f: zhenpin ? 2 : 0, fx: -1, sb, le: null };
+  if (SETS[setId] && SETS[setId].boss) y.fx = fx != null && fx >= 0 ? fx : rollFixed();
+  return y;
+}
+/** 首领御魂的固有属性：rune_random_attr 里 6 种等权（rate 都是 10），返回 D.fixedAttrs 的下标 */
+function rollFixed() { return pickW(D.fixedAttrs.map((f, i) => [i, f.w])); }
+function fxText(y, plus) { const f = D.fixedAttrs[y.fx]; return f ? SK[f.k].name + ' ' + (plus ? '+' : '') + fmtMain(f.k, f.v) : ''; }
+/** 强化规则：副属性满 4 条以后，每次追加选哪条提升。
+    'flat' 各 1/4（默认）：客户端 equip_attr 1006 的 11 种权重都是 10，过滤到已有的 4 条就是等概率，和之前中过几次无关。
+    'dyn'  动态权重（可选）：每条按「出现过的次数」加权——初始算 1 次，之后每成长 1 次加 1，概率 = 这条的次数 ÷ 4 条次数之和，
+           中得越多越容易再中。这是玩家间流传的说法，客户端里没有；tools/yuhun_cache_check.py --before 能拿自己的强化记录比较这两种。
+    不足 4 条时两种规则一样（11 种等概率，本地缓存核对过是 2/11、3/11）。 */
+let ENH_RULE = 'flat';
+const RULE_NAMES = { flat: '各 1/4', dyn: '动态权重' };
+function setEnhRule(r) { ENH_RULE = r === 'dyn' ? 'dyn' : 'flat'; return ENH_RULE; }
+/** 每条副属性出现过几次（初始 1 次 + 成长次数） */
+function rollCounts(y) { const c = {}, sb = y.sb; for (let i = 0; i < sb.length; i += 3) c[sb[i]] = (c[sb[i]] || 0) + 1; return c; }
+/** 下一次追加副属性的候选和权重（pickW 用的 [属性, 整数权重]） */
+function enhPoolOf(y, have) {
+  have = have || distinct(y);
+  if (have.length < 4) return D.enhPool;
+  if (ENH_RULE === 'dyn') { const c = rollCounts(y); return have.map((k) => [k, c[k]]); }
+  return D.enhPool.filter((p) => have.includes(p[0]));
+}
+/** 下一次追加副属性时：已有的每条被提升的概率 hit[属性]，以及新增一条的概率 fresh；满级返回 null */
+function nextHitProbs(y) {
+  if (y.lv >= 15) return null;
+  const have = distinct(y), pool = enhPoolOf(y, have);
+  let tot = 0; for (const p of pool) tot += p[1];
+  const hit = {}; let fresh = 0;
+  for (const [k, w] of pool) { if (have.includes(k)) hit[k] = w / tot; else fresh += w / tot; }
+  return { hit, fresh };
+}
+/** 升 1 级；到 +3/+6/+9/+12/+15 追加一次副属性：
+    不足 4 条时在 11 种里等概率抽（官方公示：攻击类 36%、防御类 36%、功能类 28%），抽到没有的就新增，抽到已有的就提升那一条；
+    满 4 条时在已有 4 条里提升一条（按上面的强化规则：默认各 1/4，可选动态权重）。
+    「不足 4 条也可能提升已有的」是拿本地客户端缓存的御魂核对出来的：2 条时 18.7%（2/11=18.2%），3 条时 27.2%（3/11=27.3%） */
+function levelUp(y, force) {
+  if (y.lv >= 15) return null;
+  const exp = D.exp[y.lv];
+  y.lv += 1;
+  let ev = null;
+  if (ENH.has(y.lv)) {
+    const have = distinct(y);
+    const pool = enhPoolOf(y, have);
+    // force：自定义御魂指定的这一级结果 { k 属性, c 系数×10000 或 null }，只有合乎规则时才用
+    const k = force && force.k && (have.length < 4 || have.includes(force.k)) ? force.k : pickW(pool);
+    const fresh = !have.includes(k);
+    const c = force && force.k === k && force.c != null ? force.c : coefInt(D.enhCoef);
+    y.sb.push(k, c, y.lv);
+    ev = { k, c, fresh, lv: y.lv };
+  }
+  return { exp, ev };
+}
+/** 把一件御魂强化到 to 级，并记下这一次强化里成长了哪些副属性 */
+function enhanceTo(y, to) {
+  let exp = 0; const evs = [];
+  while (y.lv < to) { const r = levelUp(y); exp += r.exp; if (r.ev) evs.push(r.ev); }
+  const le = []; for (const e of evs) le.push(e.k, e.fresh ? 1 : 0);
+  y.le = le.length ? le : null;
+  return { exp, evs };
+}
+function lastGrowth(y, k) {
+  const le = y.le; if (!le) return null;
+  let n = 0, fresh = false;
+  for (let i = 0; i < le.length; i += 2) if (le[i] === k) { n++; if (le[i + 1]) fresh = true; }
+  return n ? { n, fresh } : null;
+}
+const ROLES = {
+  out: { name: '输出（攻击加成/暴击/暴伤/速度）', keys: ['atkp', 'cri', 'cdm', 'spd'] },
+  spd: { name: '速度', keys: ['spd'] },
+  hit: { name: '控制（速度/命中）', keys: ['spd', 'hit'] },
+  res: { name: '抵抗（速度/抵抗）', keys: ['spd', 'res'] },
+  hp: { name: '奶盾（速度/生命加成）', keys: ['spd', 'hpp'] },
+};
+/** 有效成长次数：把一条副属性的系数之和折成「满单位值成长」的次数 */
+function scoreInt(y, role) { const keys = ROLES[role].keys, sb = y.sb; let s = 0; for (let i = 0; i < sb.length; i += 3) if (keys.includes(sb[i])) s += sb[i + 1]; return s; }
+const score = (y, role) => scoreInt(y, role) / C10K;
+function fmtSub(k, v, detail) {
+  const s = SK[k];
+  if (s.pct) return (detail ? (v * 100).toFixed(2) : Math.round(v * 100)) + '%';
+  return detail ? v.toFixed(2) : String(Math.round(v));
+}
+function fmtMain(k, v) { return SK[k].pct ? Math.round(v * 100) + '%' : String(Math.round(v)); }
+const expTo15 = (lv) => { let e = 0; for (let i = lv; i < 15; i++) e += D.exp[i]; return e; };
+const EXP_FULL = expTo15(0);
+
+/* ======================= 召唤内核 ======================= */
+const G = D.gacha;
+const HERO = G.heroes;                      // id -> [名字, 稀有度]
+const SAKUYA = G.sakuya;
+const POOL = {};                            // 常驻：当前全卡池 + 咲耶（10/10 起在常驻里）
+for (const r of Object.keys(G.pool)) POOL[r] = G.pool[r].slice();
+if (!POOL.SSR.includes(SAKUYA.id)) POOL.SSR.push(SAKUYA.id);
+const pickOne = (arr) => arr[Math.floor(rnd() * arr.length)];
+function rollRarity() {
+  const R = G.rates; let x = rnd() * 100;
+  if ((x -= R.UR) < 0) return 'UR';
+  if ((x -= R.SP) < 0) return 'SP';
+  if ((x -= R.SSR) < 0) return 'SSR';
+  if ((x -= R.SR) < 0) return 'SR';
+  return 'R';
+}
+const isSS = (r) => r === 'SSR' || r === 'SP';
+const POOL_CACHE = {};
+function sakuyaPools(which) {
+  if (POOL_CACHE[which]) return POOL_CACHE[which];
+  const ids = which === 'old' ? SAKUYA.poolOld : SAKUYA.poolNew;
+  const ssr = ids.filter((i) => HERO[i] && HERO[i][1] === 'SSR');
+  if (!ssr.includes(SAKUYA.id)) ssr.push(SAKUYA.id);
+  return (POOL_CACHE[which] = { SSR: ssr, SP: ids.filter((i) => HERO[i] && HERO[i][1] === 'SP'), R: G.pool.R, SR: G.pool.SR, UR: G.pool.UR });
+}
+function upRate(full, done) {
+  const cv = SAKUYA.curve[full ? '1' : '2']; let r = 0;
+  for (const [c, v] of cv) if (done >= c) r = v;
+  return r;
+}
+/** 咲耶活动的一抽。st: {full, pool, n, pity, up}；返回 [{id, r, tags}]（可能带阶段赠礼） */
+function sakuyaDraw(st) {
+  st.n += 1;
+  const out = [];
+  const floorN = SAKUYA.floor[st.full ? '1' : '2'];
+  const pools = sakuyaPools(st.pool);
+  if (!st.up && st.n === floorN) {
+    st.up = st.n; st.pity = 0;
+    out.push({ id: SAKUYA.id, r: 'SSR', tags: ['保底'] });
+  } else {
+    let r = rollRarity();
+    const tags = [];
+    if (!isSS(r) && st.pity >= SAKUYA.pity - 1) { r = rnd() < G.rates.SSR / (G.rates.SSR + G.rates.SP) ? 'SSR' : 'SP'; tags.push(SAKUYA.pity + ' 抽必出'); }
+    if (isSS(r)) {
+      st.pity = 0;
+      if (!st.up && rnd() < upRate(st.full, st.n - 1)) { st.up = st.n; out.push({ id: SAKUYA.id, r: 'SSR', tags: tags.concat(['UP']) }); }
+      else out.push({ id: pickOne(pools[r]), r, tags });
+    } else {
+      st.pity += 1;
+      out.push({ id: pickOne(pools[r]), r, tags });
+    }
+  }
+  if (st.n === 40) { const id = pickOne(SAKUYA.bonus40); out.push({ id, r: HERO[id][1], tags: ['40 抽赠礼'], extra: true }); }
+  return out;
+}
+function normalDraw(st) {
+  st.n += 1;
+  const r = rollRarity();
+  return [{ id: pickOne(POOL[r]), r, tags: [] }];
+}
+function tenGold(first) {
+  const rs = G.ten.ranges;
+  const out = [{ id: first || pickOne(G.ten.random), tags: [first ? '自选' : '随机'], line: rs[0].line }];
+  for (let i = 1; i < rs.length; i++) out.push({ id: pickOne(rs[i].ids), tags: [], line: rs[i].line });
+  out.forEach((c) => { c.r = HERO[c.id][1]; });
+  return out;
+}
+/** 多次模拟「抽到咲耶要几抽」 */
+function simSakuya(full, times) {
+  const res = [];
+  for (let t = 0; t < times; t++) {
+    const st = { full, pool: 'new', n: 0, pity: 0, up: 0 };
+    while (!st.up) sakuyaDraw(st);
+    res.push(st.up);
+  }
+  res.sort((a, b) => a - b);
+  const q = (p) => res[Math.min(res.length - 1, Math.floor(p * res.length))];
+  return { mean: res.reduce((a, b) => a + b, 0) / res.length, q10: q(0.1), q50: q(0.5), q90: q(0.9), q99: q(0.99), floorHits: res.filter((x) => x === SAKUYA.floor[full ? '1' : '2']).length / res.length };
+}
+window.YuhunCore = { D, genYuhun, levelUp, enhanceTo, subTotals, subsOf, distinct, mainValue, score, sakuyaDraw, normalDraw, tenGold, simSakuya, upRate, rollRarity, expTo15,
+  setEnhRule, enhRule: () => ENH_RULE, rollCounts, enhPoolOf, nextHitProbs };
+
+/* ======================= 状态 ======================= */
+const MAX_INV = 200000;
+const newGacha = () => ({
+  mode: 'sakuya',
+  sakuya: { full: true, pool: 'new', n: 0, pity: 0, up: 0, cnt: {}, coll: {}, hist: [], last: [] },
+  normal: { n: 0, cnt: {}, coll: {}, hist: [], last: [] },
+  ten: { n: 0, first: 0, cnt: {}, coll: {}, hist: [], last: [] },
+});
+const newState = () => ({ v: 2, seq: 0, newFrom: 0, inv: [], st: { bought: 0, maxed: 0, exp: 0 }, g: newGacha(),
+  ui: { bset: 'rand', bpos: 0, bmain: '', bkind: 0, bnum: 1, bmax: false, erule: 'flat', fset: 'all', fpos: 'all', fmain: 'all', fsub: 'all', flv: 'all', fcnt: 'all', ffx: 'all', bfx: '', fsort: 'new', flock: false, detail: true, tab: 'yh', autoRep: true, repRole: 'out', autoGRep: true } });
+let S = newState();
+const INDEX = new Map();     // id -> 御魂
+let invVer = 0;              // 仓库内容一变就 +1（筛选结果、仓库之最按它缓存）
+let sel = 0;                 // 强化台上的御魂 id
+let shown = 60;              // 仓库显示多少个
+let lastHit = null;          // 刚被强化命中的副属性（做闪烁）
+let multi = false;           // 仓库多选模式
+const picked = new Set();    // 多选选中的 id
+let lastPick = -1;           // Shift 连选的起点（在 lastList 里的下标）
+let lastList = [];           // 仓库当前筛选排序后的列表
+let selTo = 15;              // 批量强化的目标等级
+let loaded = false;          // 存档读完了没有
+const byId = (id) => INDEX.get(id);
+const isNew = (y) => y.id > S.newFrom;
+function rebuildIndex() { INDEX.clear(); for (const y of S.inv) INDEX.set(y.id, y); invVer++; }
+
+/* ======================= 存档：浏览器本地数据库（IndexedDB） =======================
+   御魂按编号每 1000 个一组，一组存成一行（JSON 文本）；改了哪件就只重写它所在的那一组。
+   （一件一行的话，20 万件第一次保存要将近一分钟；分组以后整份重写也只要一两秒）
+   打不开数据库时退回 localStorage（整份存，大约两三万件就满） */
+const LS_KEY = 'yuhun-sandbox-v1';
+const DB_NAME = 'yuhun-sandbox';
+const CHUNK = 1000;
+let idb = null, useLS = false, loadErr = false, lsWorks = true, fullToastAt = 0;
+/** localStorage 能不能写（隐私模式、禁用网站数据时会直接报错） */
+function lsProbe() { try { const k = LS_KEY + '-probe'; localStorage.setItem(k, '1'); localStorage.removeItem(k); return true; } catch (e) { return false; } }
+const dirtyChunks = new Set();
+let wipe = false, rewriteAll = false, saveTimer = 0, saving = null;
+const chunkOf = (id) => Math.floor(id / CHUNK);
+function markDirty(id) { dirtyChunks.add(chunkOf(id)); }
+function touch(y) { markDirty(y.id); invVer++; }
+function addItems(list) { for (const y of list) { S.inv.push(y); INDEX.set(y.id, y); markDirty(y.id); } invVer++; }
+function removeIds(ids) {
+  S.inv = S.inv.filter((y) => !ids.has(y.id));
+  for (const id of ids) { INDEX.delete(id); markDirty(id); picked.delete(id); }
+  if (ids.has(sel)) sel = 0;
+  invVer++;
+}
+function clearAll() { S.inv = []; INDEX.clear(); dirtyChunks.clear(); picked.clear(); wipe = true; sel = 0; invVer++; }
+/** S.inv 始终按 id 从小到大排：二分找第一个 id ≥ x 的下标 */
+function lowerBound(x) { let lo = 0, hi = S.inv.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (S.inv[mid].id < x) lo = mid + 1; else hi = mid; } return lo; }
+
+const sbEnc = (sb) => { const o = []; for (let i = 0; i < sb.length; i += 3) o.push(SK[sb[i]].i, sb[i + 1], sb[i + 2]); return o; };
+const sbDec = (a) => { const o = []; for (let i = 0; i < a.length; i += 3) o.push(D.stats[a[i]].k, a[i + 1], a[i + 2]); return o; };
+const leEnc = (le) => { const o = []; for (let i = 0; i < le.length; i += 2) o.push(SK[le[i]].i, le[i + 1]); return o; };
+const leDec = (a) => { const o = []; for (let i = 0; i < a.length; i += 2) o.push(D.stats[a[i]].k, a[i + 1]); return o; };
+/** 存档里的一件：[id, 套装, 位置, 主属性下标, 等级, 标记, 固有属性下标|-1, [副属性下标, 系数×10000, 第几级加的, ...], [这次成长的副属性下标, 是否新增, ...]|0] */
+const encY = (y) => [y.id, y.s, y.p, SK[y.m].i, y.lv, y.f, y.fx, sbEnc(y.sb), y.le ? leEnc(y.le) : 0];
+const decY2 = (a) => ({ id: a[0], s: a[1], p: a[2], m: D.stats[a[3]].k, lv: a[4], f: a[5] & 3, fx: a[6] == null ? -1 : a[6], sb: sbDec(a[7]), le: a[8] ? leDec(a[8]) : null });
+/** 旧版（v1）存档：[id,套装,位置,主属性,等级,标记,[[属性,系数,等级]...],[[属性,新增]...]|0,固有|-1] */
+const decY1 = (a) => {
+  const sb = []; for (const [i, c, l] of a[6]) sb.push(D.stats[i].k, c, l);
+  let le = null; if (a[7]) { le = []; for (const [i, f] of a[7]) le.push(D.stats[i].k, f); }
+  return { id: a[0], s: a[1], p: a[2], m: D.stats[a[3]].k, lv: a[4], f: a[5] & 3, fx: a[8] != null && a[8] >= 0 ? a[8] : -1, sb, le };
+};
+const metaOf = () => ({ v: 2, seq: S.seq, newFrom: S.newFrom, st: S.st, g: S.g, ui: S.ui });
+function serialize() { return JSON.stringify(Object.assign(metaOf(), { inv: S.inv.map(encY) })); }
+function fromParts(meta, inv) {
+  const base = newState();
+  const g = Object.assign(newGacha(), meta.g || {});
+  for (const k of ['sakuya', 'normal', 'ten']) {
+    const old = (meta.g || {})[k] || {};
+    g[k] = Object.assign(newGacha()[k], old);
+    if (!('histCut' in old)) g[k].histCut = g[k].hist.length >= 300;    // 以前的版本出货记录只留 300 条
+  }
+  inv = inv.filter((y) => SETS[y.s] && D.mains[y.p]);
+  // 旧存档里的首领御魂没有固有属性：补一条随机的
+  for (const y of inv) if (SETS[y.s].boss && !(y.fx >= 0 && D.fixedAttrs[y.fx])) y.fx = rollFixed();
+  inv.sort((a, b) => a.id - b.id);
+  const seq = Math.max(meta.seq || 0, inv.length ? inv[inv.length - 1].id : 0);
+  return { v: 2, seq, newFrom: meta.newFrom != null ? meta.newFrom : seq, st: Object.assign(base.st, meta.st || {}), g, ui: Object.assign(base.ui, meta.ui || {}), inv };
+}
+function restore(txt) {
+  const o = JSON.parse(txt);
+  if (!o || (o.v !== 1 && o.v !== 2) || !Array.isArray(o.inv)) throw new Error('不是这个沙盒的存档');
+  return fromParts(o, o.inv.map(o.v === 1 ? decY1 : decY2));
+}
+function idbOpen() {
+  return new Promise((resolve) => {
+    let req, done = false;
+    const fin = (db) => { if (!done) { done = true; resolve(db); } };
+    setTimeout(() => fin(null), 4000);           // 有的隐私模式既不成功也不报错
+    try { if (!window.indexedDB) { fin(null); return; } req = indexedDB.open(DB_NAME, 1); } catch (e) { fin(null); return; }
+    req.onupgradeneeded = () => { const db = req.result; for (const n of ['chunks', 'meta']) if (!db.objectStoreNames.contains(n)) db.createObjectStore(n); };
+    req.onsuccess = () => { if (done) req.result.close(); else fin(req.result); };
+    req.onerror = () => fin(null);
+    req.onblocked = () => fin(null);
+  });
+}
+const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const txP = (tx) => new Promise((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); });
+async function loadState() {
+  idb = await idbOpen();
+  if (!idb) { useLS = true; lsWorks = lsProbe(); }
+  if (idb) {
+    try {
+      const tx = idb.transaction(['chunks', 'meta'], 'readonly');
+      const meta = await reqP(tx.objectStore('meta').get('state'));
+      if (meta) {
+        const rows = await reqP(tx.objectStore('chunks').getAll());
+        const inv = [];
+        for (const r of rows) {
+          let arr; try { arr = JSON.parse(r); } catch (e) { continue; }     // 坏掉的一组跳过
+          for (const a of arr) { try { inv.push(decY2(a)); } catch (e) { /* 坏掉的一件跳过 */ } }
+        }
+        return fromParts(meta, inv);
+      }
+    } catch (e) {
+      // 数据库里有东西但读不出来：这次不往里写，免得把原来的存档盖乱
+      useLS = true; loadErr = true;
+    }
+  }
+  try {
+    const t = localStorage.getItem(LS_KEY);
+    if (t) { const st = restore(t); if (idb && !useLS) rewriteAll = true; return st; }   // 旧版存档搬进数据库
+  } catch (e) { /* 没有存档或读不了：从空仓库开始 */ }
+  return null;
+}
+function setSaveStatus(t) { const el = $('sv-status'); if (el) el.textContent = t; }
+function showSaveMode() {
+  const el = $('sv-mode'); if (!el) return;
+  el.textContent = idb && !useLS ? '存档放在这个浏览器的本地数据库里，' + nf(MAX_INV) + ' 个也放得下。'
+    : !lsWorks ? '这个浏览器不让网页存数据（可能是隐私模式），关掉页面就没了。'
+    : loadErr ? '本地数据库里的存档这次没读出来（原存档没动），先用普通存档，大约只能存两三万个。'
+    : '这个浏览器用不了本地数据库，改用普通存档，大约只能存两三万个。';
+}
+function lsSave() {
+  dirtyChunks.clear(); wipe = false; rewriteAll = false;     // 普通存档每次整份写，用不着这些
+  if (!lsWorks) { setSaveStatus('没存（浏览器不让存）'); return; }
+  try { localStorage.setItem(LS_KEY, serialize()); setSaveStatus('已保存'); }
+  catch (e) {
+    const full = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+    setSaveStatus(full ? '没存上（存储满了）' : '没存上');
+    if (full && Date.now() - fullToastAt > 20000) { fullToastAt = Date.now(); toast('浏览器存储满了，存不下这么多。导出一份存档，再弃置一些御魂。'); }
+  }
+}
+function save() { if (!loaded) return; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 400); setSaveStatus('有改动，稍后保存…'); }
+/** 把改动写进数据库。所有写入在一个事务里同步排好队，关页面前调用也来得及 */
+async function flush() {
+  clearTimeout(saveTimer); saveTimer = 0;
+  while (saving) await saving;
+  saving = (async () => {
+    if (idb && !useLS) {
+      if (rewriteAll || dirtyChunks.size > 20) setSaveStatus('保存中…');
+      try {
+        const tx = idb.transaction(['chunks', 'meta'], 'readwrite', { durability: 'relaxed' });
+        const st = tx.objectStore('chunks');
+        if (wipe || rewriteAll) st.clear();
+        if (rewriteAll) {
+          let c = -1, buf = [];
+          for (const y of S.inv) {
+            const k = chunkOf(y.id);
+            if (k !== c) { if (buf.length) st.put(JSON.stringify(buf), c); c = k; buf = []; }
+            buf.push(encY(y));
+          }
+          if (buf.length) st.put(JSON.stringify(buf), c);
+        } else {
+          for (const c of dirtyChunks) {
+            const buf = [];
+            for (let i = lowerBound(c * CHUNK); i < S.inv.length && S.inv[i].id < (c + 1) * CHUNK; i++) buf.push(encY(S.inv[i]));
+            if (buf.length) st.put(JSON.stringify(buf), c); else st.delete(c);
+          }
+        }
+        tx.objectStore('meta').put(metaOf(), 'state');
+        const migrated = rewriteAll;
+        dirtyChunks.clear(); wipe = false; rewriteAll = false;
+        await txP(tx);
+        if (migrated) { try { localStorage.removeItem(LS_KEY); } catch (e) { /* 留着也无妨 */ } }
+        setSaveStatus(saveTimer ? '有改动，稍后保存…' : '已保存');
+      } catch (e) {
+        useLS = true; lsWorks = lsProbe(); showSaveMode();
+        toast('浏览器本地数据库写不进去，改用普通存档（容量小，大约两三万件）');
+        lsSave();
+      }
+    } else lsSave();
+  })();
+  try { await saving; } finally { saving = null; }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && saveTimer) flush(); });
+window.addEventListener('pagehide', () => { if (saveTimer) flush(); });
+
+/* ======================= 小工具 ======================= */
+function toast(msg, gold) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (gold ? ' gold' : '');
+  el.textContent = msg;
+  const box = $('toasts');
+  while (box.children.length >= 2) box.firstChild.remove();
+  box.appendChild(el);
+  setTimeout(() => el.remove(), gold ? 4200 : 2800);
+}
+function floatAt(target, text) {
+  if (!target) return;
+  const r = target.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float'; el.textContent = text;
+  el.style.left = (r.right - 70) + 'px'; el.style.top = (r.top - 4) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+function setPressed(box, v) { box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
+const posCn = (p) => D.posCn[p - 1];
+const tierOf = lineCount;
+/** 「欧气」：某条副属性 6 次全中 */
+function luckNote(y) {
+  if (maxRolls(y) < 6) return '';
+  for (const t of subTotals(y)) if (t.rolls.length >= 6) return '六次全中！' + SETS[y.s].n + ' ' + SK[t.k].name + ' +' + fmtSub(t.k, t.val, true);
+  return '';
+}
+/** 副属性名后面的成长次数（初始那一次不算），以及这次强化的标记 */
+function subLabel(y, s) {
+  const g = s.rolls.length - 1;
+  const lg = lastGrowth(y, s.k);
+  return SK[s.k].name + (g > 0 ? '<em class="gr">+' + g + '</em>' : '') +
+    (lg ? '<i class="mk">' + (lg.fresh ? '新' + (lg.n > 1 ? ' ↑' + (lg.n - 1) : '') : '↑' + (lg.n > 1 ? lg.n : '')) + '</i>' : '');
+}
+
+/* ======================= 套装搜索 =======================
+   名字、拼音首字母（ps → 破势）、2 件套属性、2/4 件套效果、获取途径都能搜；几个词用空格隔开要同时满足。
+   拼音首字母用浏览器自带的中文排序（按拼音排）和每个声母最靠前的字比较得出，不需要字典。 */
+// 每个声母取按拼音排最靠前的一个字（网上流传的那串「阿八嚓哒妸…痳…扨它…」在现在的浏览器里 L、R、T 会错位，这串用 6763 个常用字核对过，只错 5 个生僻字）
+const PY_LETTERS = 'abcdefghjklmnopqrstwxyz', PY_BOUND = '阿八嚓咑婀发旮哈讥咔垃呣拏噢妑七呥仨他穵夕丫帀';
+let pyColl = null;
+try { pyColl = new Intl.Collator('zh-Hans-CN'); if (pyColl.compare('八', '阿') <= 0) pyColl = null; } catch (e) { pyColl = null; }
+function pyInitials(s) {
+  if (!pyColl) return '';
+  let out = '';
+  for (const ch of s) {
+    if (/[a-z0-9]/i.test(ch)) { out += ch.toLowerCase(); continue; }
+    if (!/[一-鿿]/.test(ch)) continue;
+    for (let i = PY_BOUND.length - 1; i >= 0; i--) if (pyColl.compare(ch, PY_BOUND[i]) >= 0) { out += PY_LETTERS[i]; break; }
+  }
+  return out;
+}
+let SET_IDX = null;
+function setIndex() {
+  if (!SET_IDX) SET_IDX = D.sets.map((s) => ({
+    s, n: s.n.toLowerCase(), py: pyInitials(s.n),
+    hay: [s.n, s.two.map(([k]) => SK[k].name).join(' '), s.d2, s.d4, s.way, s.boss ? '首领御魂' : '常规御魂'].join(' ').toLowerCase(),
+  }));
+  return SET_IDX;
+}
+/** 返回匹配的套装（名字和拼音命中的排前面）；q 是空的返回 null */
+function searchSets(q) {
+  const toks = String(q || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!toks.length) return null;
+  const out = [];
+  for (const e of setIndex()) {
+    let score = 0, ok = true;
+    for (const t of toks) {
+      if (e.n.startsWith(t) || e.py.startsWith(t)) score += 0;
+      else if (e.n.includes(t) || e.py.includes(t)) score += 1;
+      else if (e.hay.includes(t)) score += 3;
+      else { ok = false; break; }
+    }
+    if (ok) out.push([score, e.s]);
+  }
+  out.sort((a, b) => a[0] - b[0]);                  // 稳定排序：同分的保持表里的顺序
+  return out.map((x) => x[1]);
+}
+/** 套装下拉框的选项。mode：buy 带两个「随机」，filter 带「全部套装」，plain 只有套装。q 有内容时只列匹配的 */
+function setOptions(mode, q) {
+  const opt = (v, t) => '<option value="' + esc(v) + '">' + esc(t) + '</option>';
+  const hits = searchSets(q);
+  if (hits) return { n: hits.length, first: hits.length ? String(hits[0].id) : null, html: hits.map((s) => opt(s.id, s.n + (s.boss ? '（首领）' : ''))).join('') };
+  let h = '';
+  if (mode === 'buy') h += opt('rand', '随机（常规御魂 ' + NORMAL_SETS.length + ' 种）') + opt('randall', '随机（含首领御魂，共 ' + D.sets.length + ' 种）');
+  if (mode === 'filter') h += opt('all', '全部套装');
+  h += '<optgroup label="常规御魂">' + NORMAL_SETS.map((s) => opt(s.id, s.n)).join('') + '</optgroup>' +
+    '<optgroup label="首领御魂（只有 2 件套）">' + D.sets.filter((s) => s.boss).map((s) => opt(s.id, s.n)).join('') + '</optgroup>';
+  return { n: -1, first: null, html: h };
+}
+/** 搜索框配下拉框：打字时下拉框只留匹配的套装并选中第一个；没有匹配的就保留原来的列表；清空恢复完整列表。
+    中文输入法拼字的过程中不处理，等选好字再搜 */
+function wireSetSearch(qEl, selEl, noteEl, mode, getCur, pick) {
+  const apply = () => {
+    const q = qEl.value, r = setOptions(mode, q);
+    if (r.n === 0) { noteEl.textContent = '没有匹配「' + q.trim() + '」的套装'; noteEl.classList.add('bad'); return; }
+    noteEl.classList.remove('bad');
+    selEl.innerHTML = r.html;
+    if (r.first) {
+      noteEl.textContent = '匹配 ' + r.n + ' 套' + (r.n > 1 ? '，在下拉框里换' : '');
+      selEl.value = r.first; if (getCur() !== r.first) pick(r.first);
+    } else {
+      noteEl.textContent = '';
+      selEl.value = getCur(); if (!selEl.value) selEl.selectedIndex = 0;
+    }
+  };
+  qEl.addEventListener('input', (e) => { if (!e.isComposing) apply(); });
+  qEl.addEventListener('compositionend', apply);
+  qEl.addEventListener('keydown', (e) => { if (e.key === 'Escape' && qEl.value) { e.preventDefault(); qEl.value = ''; apply(); } });
+  return apply;
+}
+
+/* ======================= 御魂：买 ======================= */
+/** 「强化规则」下面那行说明 */
+function ruleNote() {
+  $('b-rule-note').textContent = ENH_RULE === 'dyn'
+    ? '满 4 条后每条按出现过的次数加权（初始 1 次 + 已成长次数），中得越多越容易再中；不足 4 条时不变。玩家间的说法，客户端里没有。'
+    : '满 4 条后每次在 4 条里等概率提升一条，和之前中过几次无关（客户端配置表的写法）。';
+}
+/** 概率显示：整数就不带小数 */
+function pctTxt(p) { const v = p * 100; return (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1)) + '%'; }
+function buildBuy() {
+  const opt = (v, t) => '<option value="' + esc(v) + '">' + esc(t) + '</option>';
+  $('b-setq').value = ''; $('b-setq-n').textContent = ''; $('b-setq-n').classList.remove('bad');
+  $('b-set').innerHTML = setOptions('buy', '').html;
+  $('b-pos').innerHTML = '<button type="button" data-v="0">随机</button>' + D.posCn.map((c, i) => '<button type="button" data-v="' + (i + 1) + '">' + c + '</button>').join('');
+  $('b-set').value = S.ui.bset;
+  if (!$('b-set').value) { S.ui.bset = 'rand'; $('b-set').value = 'rand'; }
+  setPressed($('b-pos'), S.ui.bpos); setPressed($('b-kind'), S.ui.bkind); setPressed($('b-num'), S.ui.bnum);
+  $('b-max').checked = !!S.ui.bmax;
+  S.ui.erule = setEnhRule(S.ui.erule);           // 旧存档没有这一项 → 默认各 1/4
+  setPressed($('b-rule'), S.ui.erule); ruleNote();
+  const tot = D.fixedAttrs.reduce((a, f) => a + f.w, 0);
+  $('b-fx').innerHTML = '<option value="">随机（6 种各 ' + Math.round(D.fixedAttrs[0].w / tot * 1000) / 10 + '%）</option>' +
+    D.fixedAttrs.map((f, i) => '<option value="' + i + '">' + SK[f.k].name + ' ' + fmtMain(f.k, f.v) + '</option>').join('');
+  $('b-fx').value = S.ui.bfx == null ? '' : String(S.ui.bfx);
+  buildMainSelect();
+  showFxPicker();
+}
+/** 只有买首领御魂（或随机里含首领御魂）时才显示固有属性选项 */
+function showFxPicker() {
+  const v = S.ui.bset;
+  $('b-fx-wrap').hidden = !(v === 'randall' || (SETS[+v] && SETS[+v].boss));
+}
+function buildMainSelect() {
+  const p = S.ui.bpos;
+  const sel = $('b-main');
+  if (!p) {
+    sel.innerHTML = '<option value="">按游戏概率（位置随机）</option>'; sel.disabled = true; S.ui.bmain = ''; return;
+  }
+  const cands = D.mains[p];
+  const tot = cands.reduce((a, c) => a + c.w, 0);
+  sel.disabled = cands.length < 2;
+  sel.innerHTML = (cands.length > 1 ? '<option value="">按游戏概率随机</option>' : '') +
+    cands.map((c) => '<option value="' + c.k + '">' + SK[c.k].name + '（' + (c.w / tot * 100).toFixed(c.w / tot * 100 % 1 ? 1 : 0) + '%）</option>').join('');
+  if (cands.length === 1) S.ui.bmain = '';
+  sel.value = cands.some((c) => c.k === S.ui.bmain) ? S.ui.bmain : (cands.length > 1 ? '' : cands[0].k);
+}
+function doBuy() {
+  if (!loaded) return;
+  const n = S.ui.bnum;
+  if (S.inv.length + n > MAX_INV) { toast('仓库最多放 ' + nf(MAX_INV) + ' 个，还能放 ' + nf(MAX_INV - S.inv.length) + ' 个，先弃置一些吧'); return; }
+  const got = [], pre = [];
+  let maxed = 0, exp = 0, luck = '';
+  S.newFrom = S.seq;
+  const fx = S.ui.bfx === '' || S.ui.bfx == null ? null : +S.ui.bfx;
+  for (let i = 0; i < n; i++) {
+    let sid = S.ui.bset;
+    if (sid === 'rand') sid = pickOne(NORMAL_SETS).id;
+    else if (sid === 'randall') sid = pickOne(D.sets).id;
+    else sid = +sid;
+    const pos = S.ui.bpos || randint(1, 6);
+    const y = genYuhun(sid, pos, S.ui.bpos ? (S.ui.bmain || null) : null, S.ui.bkind === 1, fx);
+    y.id = ++S.seq;
+    if (S.ui.bmax) { pre.push(y.id, 0, y.sb.length, 15); exp += enhanceTo(y, 15).exp; maxed++; luck = luck || luckNote(y); }
+    got.push(y);
+  }
+  addItems(got);
+  S.ui.ex = false;
+  S.st.bought += n; S.st.maxed += maxed; S.st.exp += exp;
+  if (got.length) sel = got[got.length - 1].id;
+  shown = Math.max(60, Math.min(got.length, 120));
+  save(); renderAll();
+  toast('买了 ' + nf(n) + ' 个' + (S.ui.bmax ? '，全部强化到 +15' : ''));
+  if (luck) toast(luck, true);
+  if (S.ui.bmax) finishBatch(pre, 'buy', exp, 10);
+}
+
+/* ======================= 御魂：强化台 ======================= */
+function renderBench() {
+  const box = $('bench');
+  const y = byId(sel);
+  if (!y) {
+    box.innerHTML = '<div class="panel-h"><h2>强化台</h2></div><p class="bench-empty">' + (loaded ? '先买几个御魂，再在仓库里点一个放上来。' : '正在读取存档…') + '</p>';
+    return;
+  }
+  const t = tierOf(y), set = SETS[y.s], det = S.ui.detail;
+  const tots = subTotals(y);
+  const nx = nextHitProbs(y);                    // 下一次成长：每条被提升的概率（按当前强化规则）
+  let h = '<div class="panel-h"><h2>强化台</h2><button class="btn small" type="button" id="bn-detail">' + (det ? '显示整数' : '显示小数') + '</button></div>';
+  h += '<div class="bench-head t' + t + '"><span class="hex big t' + t + '">' + posCn(y.p) + '</span><div class="nm"><b>' + esc(set.n) + '</b><span class="tier-name t' + t + '">' + (D.titles[t] || '无副属性') + (isZp(y) ? ' · 珍品' : '') + (set.boss ? ' · 首领御魂' : '') + '</span></div><span class="lvl">+' + y.lv + '</span></div>';
+  h += '<div class="mainline"><span>' + posCn(y.p) + '号位主属性 · ' + SK[y.m].name + '</span><b>' + fmtMain(y.m, mainValue(y)) + '</b></div>';
+  if (hasFx(y)) h += '<div class="fxline"><span>固有属性（首领御魂自带，不参与强化）</span><b>' + fxText(y, true) + '</b></div>';
+  h += '<ul class="sublist t' + t + '">';
+  if (!tots.length) h += '<li><span class="hint">没有副属性</span></li>';
+  for (const s of tots) {
+    let pips = ''; for (let i = 0; i < 6; i++) pips += '<i class="' + (i < s.rolls.length ? 'on' : '') + '"></i>';
+    const cls = [lastHit && lastHit.id === y.id && lastHit.k === s.k ? 'hit' : '', lastGrowth(y, s.k) ? 'up' : ''].filter(Boolean).join(' ');
+    h += '<li data-k="' + s.k + '"' + (cls ? ' class="' + cls + '"' : '') + '><span class="nm2">' + subLabel(y, s) + '</span><span class="pips" title="共 ' + s.rolls.length + ' 次（初始 1 次 + 成长 ' + (s.rolls.length - 1) + ' 次）">' + pips + '</span><span class="v">+' + fmtSub(s.k, s.val, det) + '</span>' +
+      '<span class="coefs">系数 ' + s.rolls.map((c) => c.toFixed(3)).join(' · ') + (nx ? '<span class="nexthit"> ｜ 下次 ' + pctTxt(nx.hit[s.k] || 0) + '</span>' : '') + '</span></li>';
+  }
+  h += '</ul>';
+  if (nx) {
+    const four = distinct(y).length >= 4;
+    h += '<p class="hint nextnote">下次成长' + (four ? '按「' + RULE_NAMES[ENH_RULE] + '」：' + (ENH_RULE === 'dyn' ? '每条按出现过的次数加权' : '4 条各 1/4') : '：新增一条 ' + pctTxt(nx.fresh) + '，已有的每条 ' + pctTxt(1 / D.enhPool.length) + '（不足 4 条时两种规则一样）') + '</p>';
+  }
+  h += '<div class="lvbar">';
+  for (let i = 1; i <= 15; i++) h += '<i class="' + (i <= y.lv ? 'on' : '') + (i % 3 === 0 ? ' mark' : '') + '"></i>';
+  h += '</div><div class="lvlabels"><span>+3</span><span>+6</span><span>+9</span><span>+12</span><span>+15</span></div>';
+  const full = y.lv >= 15;
+  h += '<div class="bench-actions"><button class="btn primary grow" type="button" id="bn-3"' + (full ? ' disabled' : '') + '>强化到 +' + Math.min(15, Math.floor(y.lv / 3) * 3 + 3) + '</button>' +
+    '<button class="btn" type="button" id="bn-15"' + (full ? ' disabled' : '') + '>直接 +15</button>' +
+    '<button class="btn" type="button" id="bn-1"' + (full ? ' disabled' : '') + '>+1</button></div>';
+  h += '<div class="bench-actions"><button class="btn small" type="button" id="bn-lock">' + (isLock(y) ? '解锁' : '锁定') + '</button>' +
+    '<button class="btn small" type="button" id="bn-copy">按这件的套装/位置/主属性再买 10 个</button>' +
+    '<button class="btn small" type="button" id="bn-tpl">以这件为模板自定义</button>' +
+    (isLock(y) ? '' : '<span id="bn-del"><button class="btn small danger" type="button">弃置</button></span>') + '</div>';
+  const need = expTo15(y.lv);
+  h += '<p class="cost">' + (full ? '已满级。从 +0 到 +15 一共 ' + nf(EXP_FULL) + ' 经验' : '到 +15 还要 <span class="num">' + nf(need) + '</span> 经验 ≈ ' + (need / D.qjg.exp).toFixed(1) + ' 只' + esc(D.qjg.name)) + '（用青吉鬼 ' + nf((full ? EXP_FULL : need) / D.qjg.exp * D.qjg.gold) + ' 金币，用贪吃鬼 ' + nf((full ? EXP_FULL : need) * D.glutGold) + ' 金币）</p>';
+  const subs = subsOf(y);
+  const evs = subs.filter((s) => s[2] > 0);
+  if (evs.length) {
+    const seen = new Set(subs.filter((s) => s[2] === 0).map((s) => s[0]));
+    h += '<ul class="log">';
+    for (const [k, c, l] of evs) {
+      const fresh = !seen.has(k); seen.add(k);
+      h += '<li><span class="num">+' + l + '</span><span>' + (fresh ? '<span class="new">新增</span> ' : '提升 ') + SK[k].name + ' +' + fmtSub(k, SK[k].unit * c, true) + '（系数 ' + c.toFixed(3) + '）</span></li>';
+    }
+    h += '</ul>';
+  }
+  const fx = [];
+  if (set.two.length) fx.push('<b>2 件套</b> ' + set.two.map(([k, v]) => SK[k].name + ' +' + fmtMain(k, v)).join('，'));
+  if (set.d2) fx.push('<b>2 件套效果</b> ' + esc(set.d2));
+  if (set.d4) fx.push('<b>4 件套</b> ' + esc(set.d4));
+  if (fx.length) h += '<div class="setfx">' + fx.join('<br>') + '</div>';
+  box.innerHTML = h;
+  const hitEl = box.querySelector('li.hit');
+  if (hitEl && lastHit && lastHit.show) { floatAt(hitEl, '+' + fmtSub(lastHit.k, SK[lastHit.k].unit * lastHit.c / C10K, true)); lastHit.show = false; }
+
+  $('bn-detail').onclick = () => { S.ui.detail = !S.ui.detail; save(); renderBench(); renderStore(); };
+  const step = (target) => {
+    const r = enhanceTo(y, target);
+    const ev = r.evs.length ? r.evs[r.evs.length - 1] : null;
+    S.st.exp += r.exp;
+    if (y.lv === 15) S.st.maxed++;
+    touchOne(y);
+    lastHit = ev ? { id: y.id, k: ev.k, c: ev.c, show: true } : null;
+    const luck = y.lv === 15 ? luckNote(y) : '';
+    save(); renderBench(); renderStore(); renderTiles(); renderRecords();
+    if (luck) toast(luck, true);
+  };
+  if (!full) {
+    $('bn-3').onclick = () => step(Math.min(15, Math.floor(y.lv / 3) * 3 + 3));
+    $('bn-15').onclick = () => step(15);
+    $('bn-1').onclick = () => step(y.lv + 1);
+  }
+  $('bn-lock').onclick = () => { setLock(y, !isLock(y)); touchOne(y); save(); renderBench(); renderStore(); };
+  $('bn-copy').onclick = () => {
+    S.ui.bset = String(y.s); S.ui.bpos = y.p; S.ui.bmain = D.mains[y.p].length > 1 ? y.m : ''; S.ui.bnum = 10; S.ui.bkind = isZp(y) ? 1 : 0;
+    buildBuy(); doBuy();
+  };
+  $('bn-tpl').onclick = () => openCustom(Object.assign(specFromY(y), { n: S.ui.cust ? S.ui.cust.n : 1 }));   // 创建数量沿用上次的
+  const del = $('bn-del');
+  if (del) twoStep(del, '弃置', '确定弃置', () => { removeIds(new Set([y.id])); save(); renderAll(); });
+}
+/** 两步确认：第一次点出现「确定」 */
+function twoStep(holder, label, sure, fn) {
+  const reset = () => { holder.innerHTML = '<button class="btn small danger" type="button">' + label + '</button>'; holder.firstChild.onclick = ask; };
+  const ask = () => {
+    holder.innerHTML = '<span class="confirm"><button class="btn small danger" type="button">' + sure + '</button><button class="btn small" type="button">算了</button></span>';
+    const [a, b] = holder.querySelectorAll('button'); a.onclick = () => { reset(); fn(); }; b.onclick = reset;   // 确定之后按钮复原，下次还要两步
+  };
+  reset();
+}
+
+/* ======================= 御魂：自定义 =======================
+   套装、位置、主属性、初始副属性（属性和数值）、每一级强化命中哪条都可以指定；留「随机」的按游戏规则随机。
+   指定的结果必须合乎规则：不足 4 条才能新增，满 4 条只能提升已有的；数值在单位值的 0.8~1.0 倍之间。 */
+const ENH_LIST = D.enhLevels;
+const CUST_NS = [1, 10, 100, 1000, 10000];        // 创建数量的快捷档；也可以在旁边的框里填任意件数
+let custNBad = false;                             // 数量框里现在填的不是正整数（按钮先灰掉，失焦时恢复成上一次填对的）
+const dispMul = (k) => (SK[k].pct ? 100 : 1);           // 输入框里百分比属性按「%」填
+const trimNum = (v) => String(+v.toFixed(4));
+function valRange(k, enh) { const r = enh ? D.enhCoef : D.coef, u = SK[k].unit * dispMul(k); return [r[0] * u, r[1] * u]; }
+function rangeText(k, enh) { const [a, b] = valRange(k, enh), f = (x) => String(+x.toFixed(2)); return f(a) + '~' + f(b) + (SK[k].pct ? '%' : ''); }
+/** 输入的数值 → 系数×10000；超出范围返回 null */
+function coefFromVal(k, v, enh) {
+  const r = enh ? D.enhCoef : D.coef, c = v / (SK[k].unit * dispMul(k));
+  if (!isFinite(c) || c < r[0] - 1e-6 || c > r[1] + 1e-6) return null;
+  return Math.round(Math.min(r[1], Math.max(r[0], c)) * C10K);
+}
+/** 系数 → 输入框里显示的数值：取最短的、换回去还是同一个系数的写法（填 2.9 存成系数 0.9667，再显示还是 2.9） */
+function valFromCoef(k, ci) {
+  const u = SK[k].unit * dispMul(k);
+  for (let d = 0; d <= 4; d++) { const s = (ci / C10K * u).toFixed(d); if (Math.round(+s / u * C10K) === ci) return String(+s); }
+  return trimNum(ci / C10K * u);
+}
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function withSeed(seed, fn) { const prev = RNG; RNG = mulberry32(seed); try { return fn(); } finally { RNG = prev; } }
+
+const slot = (k, v) => ({ k: k == null ? 'rand' : k, v: v == null ? '' : String(v) });
+function custDefault() {
+  const set = SETS[300030] ? 300030 : NORMAL_SETS[0].id;
+  return { set: String(set), pos: 2, main: 'spd', fx: '', lv: 0, zp: false, n: 1,
+    init: [slot(), slot(), slot(), slot()], steps: ENH_LIST.map(() => slot()) };
+}
+/** 每一级强化之前这件御魂有哪几条（前面有随机的、条数又不满 4 条时就不知道了） */
+function custStates(sp) {
+  let known = sp.init.every((s) => s.k !== 'rand');
+  const have = known ? sp.init.filter((s) => s.k).map((s) => s.k) : null;
+  const out = [];
+  ENH_LIST.forEach((lv, j) => {
+    if (lv > sp.lv) return;
+    out.push({ lv, j, known, have: known ? have.slice() : null });
+    const st = sp.steps[j];
+    if (!known) return;
+    if (st.k !== 'rand') { if (!have.includes(st.k)) have.push(st.k); }
+    else if (have.length < 4) known = false;          // 满 4 条时随机也只是在这 4 条里，条目不变
+  });
+  return out;
+}
+/** 把说明书整理成合法的：位置/主属性/固有属性对得上，初始副属性不重复，指定的强化结果合乎规则 */
+function custNormalize(sp) {
+  const d = custDefault();
+  sp = Object.assign(d, sp || {});
+  if (!SETS[+sp.set]) sp.set = d.set;
+  sp.pos = Math.min(6, Math.max(1, +sp.pos || 2));
+  const cands = D.mains[sp.pos];
+  if (sp.main && !cands.some((c) => c.k === sp.main)) sp.main = '';
+  if (cands.length === 1) sp.main = cands[0].k;
+  if (!SETS[+sp.set].boss || !(sp.fx !== '' && D.fixedAttrs[+sp.fx])) sp.fx = '';
+  sp.lv = Math.min(15, Math.max(0, Math.round(+sp.lv || 0)));
+  sp.n = Math.min(MAX_INV, Math.max(1, Math.floor(+sp.n) || 1));   // 创建数量：快捷档或自己填的任意件数
+  sp.init = [0, 1, 2, 3].map((i) => slot((sp.init || [])[i] ? sp.init[i].k : 'rand', (sp.init || [])[i] ? sp.init[i].v : ''));
+  const seen = new Set();
+  for (const s of sp.init) {
+    if (s.k && s.k !== 'rand' && (!SK[s.k] || seen.has(s.k))) s.k = 'rand';
+    if (s.k && s.k !== 'rand') seen.add(s.k); else s.v = '';
+  }
+  sp.steps = ENH_LIST.map((_, j) => slot((sp.steps || [])[j] ? sp.steps[j].k : 'rand', (sp.steps || [])[j] ? sp.steps[j].v : ''));
+  // 按等级顺序逐级检查：不合规则的改回随机，再往下推这一级之后有哪几条
+  let known = sp.init.every((s) => s.k !== 'rand');
+  const have = known ? sp.init.filter((s) => s.k).map((s) => s.k) : null;
+  ENH_LIST.forEach((lv, j) => {
+    if (lv > sp.lv) return;                       // 超过等级的先留着，等级调回来还在
+    const s = sp.steps[j];
+    if (s.k !== 'rand' && (!SK[s.k] || !known || (have.length >= 4 && !have.includes(s.k)))) s.k = 'rand';
+    if (s.k === 'rand') s.v = '';
+    if (!known) return;
+    if (s.k !== 'rand') { if (!have.includes(s.k)) have.push(s.k); }
+    else if (have.length < 4) known = false;
+  });
+  return sp;
+}
+/** 输入框里填错的：{ 'i0': '要在 2.4~3 之间', ... } */
+function custErrors(sp) {
+  const err = {};
+  sp.init.forEach((s, i) => {
+    if (!s.k || s.k === 'rand' || String(s.v).trim() === '') return;
+    if (coefFromVal(s.k, +s.v, false) == null) err['i' + i] = '要在 ' + rangeText(s.k, false) + ' 之间';
+  });
+  for (const st of custStates(sp)) {
+    const s = sp.steps[st.j];
+    if (s.k === 'rand' || String(s.v).trim() === '') continue;
+    if (coefFromVal(s.k, +s.v, true) == null) err['s' + st.j] = '要在 ' + rangeText(s.k, true) + ' 之间';
+  }
+  return err;
+}
+/** 照说明书做一件（随机的部分每次都重新随机） */
+function buildCustom(sp) {
+  const setId = +sp.set, pos = sp.pos, cands = D.mains[pos];
+  const m = sp.main && cands.some((c) => c.k === sp.main) ? sp.main : pickW(cands.map((c) => [c.k, c.w]));
+  const used = new Set(sp.init.filter((s) => s.k && s.k !== 'rand').map((s) => s.k));
+  const sb = [];
+  for (const s of sp.init) {
+    if (!s.k) continue;
+    let k = s.k, c = null;
+    if (k === 'rand') { k = pickW(D.subPool.filter((p) => !used.has(p[0]))); used.add(k); }
+    else if (String(s.v).trim() !== '') c = coefFromVal(k, +s.v, false);
+    sb.push(k, c != null ? c : coefInt(D.coef), 0);
+  }
+  const y = { id: 0, s: setId, p: pos, m, lv: 0, f: sp.zp ? 2 : 0, fx: -1, sb, le: null };
+  if (SETS[setId].boss) y.fx = sp.fx !== '' ? +sp.fx : rollFixed();
+  while (y.lv < sp.lv) {
+    const j = ENH_LIST.indexOf(y.lv + 1), st = j >= 0 ? sp.steps[j] : null;
+    levelUp(y, st && st.k !== 'rand' ? { k: st.k, c: String(st.v).trim() !== '' ? coefFromVal(st.k, +st.v, true) : null } : null);
+  }
+  return y;
+}
+/** 拿一件现有的御魂当模板 */
+function specFromY(y) {
+  const init = [], steps = ENH_LIST.map(() => slot());
+  for (let i = 0; i < y.sb.length; i += 3) {
+    const k = y.sb[i], c = y.sb[i + 1], l = y.sb[i + 2];
+    if (l === 0) { if (init.length < 4) init.push(slot(k, valFromCoef(k, c))); }
+    else { const j = ENH_LIST.indexOf(l); if (j >= 0) steps[j] = slot(k, valFromCoef(k, c)); }
+  }
+  while (init.length < 4) init.push(slot(''));
+  return { set: String(y.s), pos: y.p, main: y.m, fx: y.fx >= 0 ? String(y.fx) : '', lv: y.lv, zp: isZp(y), n: 1, init, steps };
+}
+let custSeed = 1, custQ = '';
+/** 编辑框里的套装搜索：会重画整个编辑框，所以画完把光标放回搜索框 */
+function custSearch(el) {
+  custQ = el.value;
+  const r = setOptions('plain', custQ);
+  if (r.first) S.ui.cust.set = r.first;
+  const pos = el.selectionStart;
+  save(); renderCustom();
+  const q = $('cdlg').querySelector('input[data-f=setq]');
+  if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (e) { /* 有的浏览器 search 框不支持 */ } }
+}
+function custPreview(sp) {
+  const y = withSeed(custSeed, () => buildCustom(sp));
+  const random = sp.init.some((s) => s.k === 'rand' || (s.k && String(s.v).trim() === '')) || !sp.main ||
+    custStates(sp).some((st) => sp.steps[st.j].k === 'rand' || String(sp.steps[st.j].v).trim() === '') || (SETS[+sp.set].boss && sp.fx === '');
+  $('cd-card').innerHTML = cardHTML(y, null).replace(/^<button type="button" class="yh/, '<div class="yh').replace(/<\/button>$/, '</div>');
+  $('cd-pnote').textContent = random ? '这是其中一种结果：留「随机」的部分，每创建一件都会重新随机。' : '全部都指定了，创建出来就是这样。';
+  $('cd-reroll').hidden = !random;
+}
+/** 创建数量填得对不对：空的/小数/0 不行，也不能超过仓库剩下的位置 */
+function custNError(sp) {
+  if (custNBad) return '数量要填正整数';
+  if (sp.n > MAX_INV - S.inv.length) return MAX_INV > S.inv.length ? '仓库放不下这么多' : '仓库满了，先弃置一些';
+  return '';
+}
+function custSyncErrors(sp) {
+  const err = custErrors(sp);
+  $('cdlg').querySelectorAll('input[data-f=iv], input[data-f=sv]').forEach((el) => {
+    const key = (el.dataset.f === 'iv' ? 'i' : 's') + el.dataset.i;
+    el.classList.toggle('bad', !!err[key]);
+    const r = $('cr-' + key); if (r) { r.textContent = err[key] || r.dataset.ok; r.classList.toggle('bad', !!err[key]); }
+  });
+  const n = Object.keys(err).length, nErr = custNError(sp);
+  const nIn = $('cdlg').querySelector('input[data-f=n]');
+  if (nIn) nIn.classList.toggle('bad', !!nErr);
+  $('cd-room').classList.toggle('bad', !custNBad && !!nErr);
+  $('cd-n').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(!custNBad && +b.dataset.n === sp.n)));
+  $('cd-go').disabled = n > 0 || !!nErr;
+  $('cd-go').textContent = n ? '先改好标红的数值' : nErr || '创建 ' + nf(sp.n) + ' 件';
+  return n;
+}
+function renderCustom() {
+  const sp = S.ui.cust = custNormalize(S.ui.cust);
+  const opt = (v, t, cur, dis) => '<option value="' + esc(v) + '"' + (String(cur) === String(v) ? ' selected' : '') + (dis ? ' disabled' : '') + '>' + esc(t) + '</option>';
+  const set = SETS[+sp.set], cands = D.mains[sp.pos], tot = cands.reduce((a, c) => a + c.w, 0);
+  let h = '<div class="cd-head"><h2>自定义御魂</h2><button class="btn small" type="button" id="cd-x">关闭</button></div>' +
+    '<p class="hint">套装、位置、主属性、每条副属性的数值，还有每一级强化命中哪条，都可以指定。留「随机」的部分按游戏规则随机。指定的结果要合乎规则：不足 4 条时才能新增，满 4 条只能提升已有的。</p>';
+  h += '<div class="cd-grid">';
+  const sr = setOptions('plain', custQ);
+  h += '<div class="field cd-set"><span>套装</span><input type="search" class="setq" data-f="setq" value="' + esc(custQ) + '" placeholder="搜：名字、拼音首字母或效果，如 破势 / ps / 眩晕" autocomplete="off" spellcheck="false" aria-label="搜套装">' +
+    '<select data-f="set" aria-label="套装">' + (sr.n > 0 ? sr.html : setOptions('plain', '').html) + '</select>' +
+    '<span class="hint setq-n' + (sr.n === 0 ? ' bad' : '') + '">' + (sr.n === 0 ? '没有匹配「' + esc(custQ.trim()) + '」的套装' : sr.n > 0 ? '匹配 ' + sr.n + ' 套' : '') + '</span></div>';
+  h += '<label class="field"><span>主属性</span><select data-f="main"' + (cands.length < 2 ? ' disabled' : '') + '>' +
+    (cands.length > 1 ? opt('', '按游戏概率随机', sp.main) : '') +
+    cands.map((c) => opt(c.k, SK[c.k].name + (cands.length > 1 ? '（' + (c.w / tot * 100).toFixed(c.w / tot * 100 % 1 ? 1 : 0) + '%）' : ''), sp.main)).join('') + '</select></label>';
+  if (set.boss) h += '<label class="field"><span>固有属性</span><select data-f="fx">' + opt('', '随机', sp.fx) +
+    D.fixedAttrs.map((f, i) => opt(i, SK[f.k].name + ' ' + fmtMain(f.k, f.v), sp.fx)).join('') + '</select></label>';
+  h += '<label class="field"><span>等级</span><select data-f="lv">' + Array.from({ length: 16 }, (_, i) => opt(i, '+' + i, sp.lv)).join('') + '</select></label>';
+  h += '</div>';
+  h += '<div class="field"><span>位置</span><div class="seg" id="cd-pos">' + D.posCn.map((c, i) => '<button type="button" data-pos="' + (i + 1) + '" aria-pressed="' + (sp.pos === i + 1) + '">' + c + '</button>').join('') + '</div></div>';
+  h += '<label class="chk"><input type="checkbox" data-f="zp"' + (sp.zp ? ' checked' : '') + '> 标成珍品（只是标记）</label>';
+  // 初始副属性
+  h += '<h3>初始副属性</h3><div class="cd-rows">';
+  sp.init.forEach((s, i) => {
+    const taken = new Set(sp.init.filter((x, j) => j !== i && x.k && x.k !== 'rand').map((x) => x.k));
+    const fixed = s.k && s.k !== 'rand';
+    const ok = fixed ? '可填 ' + rangeText(s.k, false) + '，空着就随机' : (s.k === 'rand' ? '随机一条（不和其他条重复）' : '');
+    h += '<div class="cd-row"><span class="cd-idx">' + (i + 1) + '</span><select data-f="ik" data-i="' + i + '">' + opt('', '无', s.k) + opt('rand', '随机', s.k) +
+      D.stats.map((st) => opt(st.k, st.name, s.k, taken.has(st.k))).join('') + '</select>' +
+      '<input type="number" step="any" inputmode="decimal" data-f="iv" data-i="' + i + '" value="' + esc(fixed ? s.v : '') + '" placeholder="' + (fixed ? '数值（随机）' : '—') + '"' + (fixed ? '' : ' disabled') + '>' +
+      '<span class="cd-range" id="cr-i' + i + '" data-ok="' + esc(ok) + '">' + esc(ok) + '</span></div>';
+  });
+  h += '</div>';
+  // 强化结果
+  const states = custStates(sp);
+  h += '<h3>强化结果</h3>';
+  if (!states.length) h += '<p class="hint">等级在 +3 以下，还没有强化。把上面的等级调高，就能指定 +3、+6、+9、+12、+15 各命中哪条。</p>';
+  else if (!states[0].known) h += '<p class="hint">初始副属性里有「随机」的，不知道会有哪几条，所以强化结果只能随机。想指定强化结果，先把 4 条初始副属性都定下来（不要的选「无」）。</p>';
+  else {
+    h += '<div class="cd-rows">';
+    for (const st of states) {
+      const s = sp.steps[st.j];
+      let opts = opt('rand', '随机', s.k), note;
+      if (st.known) {
+        const pool = st.have.length < 4 ? D.stats.map((x) => x.k) : st.have;
+        opts += pool.map((k) => opt(k, (st.have.includes(k) ? '提升 ' : '新增 ') + SK[k].name, s.k)).join('');
+        note = s.k === 'rand' ? (st.have.length < 4 ? '随机：11 种里抽，没有的新增、已有的提升' : ENH_RULE === 'dyn' ? '随机：按「动态权重」，出现过的次数越多越容易中' : '随机：已有的 4 条各 1/4') : '可填 ' + rangeText(s.k, true) + '，空着就随机';
+      } else note = '上一级是随机新增的，不知道这时有哪几条，只能随机';
+      const fixed = s.k !== 'rand';
+      h += '<div class="cd-row"><span class="cd-idx">+' + st.lv + '</span><select data-f="sk" data-i="' + st.j + '"' + (st.known ? '' : ' disabled') + '>' + opts + '</select>' +
+        '<input type="number" step="any" inputmode="decimal" data-f="sv" data-i="' + st.j + '" value="' + esc(fixed ? s.v : '') + '" placeholder="' + (fixed ? '数值（随机）' : '—') + '"' + (fixed ? '' : ' disabled') + '>' +
+        '<span class="cd-range" id="cr-s' + st.j + '" data-ok="' + esc(note) + '">' + esc(note) + '</span></div>';
+    }
+    h += '</div>';
+  }
+  h += '<div class="cd-prev"><div id="cd-card"></div><div class="cd-pside"><p class="hint" id="cd-pnote"></p><button class="btn small" type="button" id="cd-reroll">换一个示例</button></div></div>';
+  const room = MAX_INV - S.inv.length;
+  custNBad = false;                               // 数量框按 sp.n 重画，之前没填好的作废
+  h += '<div class="cd-foot"><div class="cd-n" role="group" aria-label="创建数量"><span>数量</span><div class="seg" id="cd-n">' +
+    CUST_NS.map((v) => '<button type="button" data-n="' + v + '" aria-pressed="' + (sp.n === v) + '">' + (v >= 10000 ? v / 10000 + '万' : v) + '</button>').join('') + '</div>' +
+    '<label>或填<input type="number" min="1" max="' + Math.max(1, room) + '" step="1" inputmode="numeric" data-f="n" value="' + sp.n + '" aria-label="自己填创建数量">件</label>' +
+    '<span class="hint" id="cd-room">仓库还能放 ' + nf(room) + ' 件</span></div>' +
+    '<button class="btn primary" type="button" id="cd-go">创建</button></div>';
+  $('cdlg-body').innerHTML = h;
+  const setSel = $('cdlg').querySelector('select[data-f=set]');
+  setSel.value = sp.set; if (setSel.value !== String(sp.set)) { setSel.selectedIndex = 0; sp.set = setSel.value; }
+  custPreview(sp);
+  custSyncErrors(sp);
+}
+function openCustom(sp) {
+  S.ui.cust = custNormalize(sp || S.ui.cust);
+  custSeed = (Math.random() * 2 ** 31) | 0; custQ = '';
+  renderCustom();
+  const dlg = $('cdlg');
+  if (typeof dlg.showModal === 'function') { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+  dlg.scrollTop = 0;
+}
+function closeCustom() { const dlg = $('cdlg'); if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); }
+function doCustom() {
+  const sp = S.ui.cust = custNormalize(S.ui.cust);
+  if (Object.keys(custErrors(sp)).length) return;
+  const n = sp.n;
+  if (S.inv.length + n > MAX_INV) { toast('仓库最多放 ' + nf(MAX_INV) + ' 个，还能放 ' + nf(MAX_INV - S.inv.length) + ' 个，先弃置一些吧'); return; }
+  S.newFrom = S.seq;
+  const got = [];
+  for (let i = 0; i < n; i++) { const y = buildCustom(sp); y.id = ++S.seq; got.push(y); }
+  addItems(got);
+  S.ui.ex = false; S.st.bought += n;
+  sel = got[got.length - 1].id; lastHit = null;
+  shown = Math.max(60, Math.min(n, 120));
+  save(); renderAll(); closeCustom();
+  toast('自定义了 ' + nf(n) + ' 件' + SETS[+sp.set].n + '，放在强化台上了');
+  scrollBench();
+}
+/** 数量框：填的是正整数就记下来（随存档保留）；不是就先把「创建」按钮灰掉，失焦时恢复成上一次填对的 */
+function custNInput(el) {
+  const sp = S.ui.cust, raw = el.value.trim(), v = Number(raw);
+  custNBad = !(raw !== '' && Number.isInteger(v) && v >= 1);
+  if (!custNBad && sp.n !== v) { sp.n = v; save(); }
+  custSyncErrors(sp);
+}
+$('cdlg').addEventListener('change', (e) => {
+  const el = e.target, f = el.dataset && el.dataset.f; if (!f) return;
+  const sp = S.ui.cust, i = +el.dataset.i;
+  if (f === 'n') { if (custNBad) { custNBad = false; el.value = sp.n; custSyncErrors(sp); } return; }
+  if (f === 'set') sp.set = el.value;
+  else if (f === 'main') sp.main = el.value;
+  else if (f === 'fx') sp.fx = el.value;
+  else if (f === 'lv') sp.lv = +el.value;
+  else if (f === 'zp') sp.zp = el.checked;
+  else if (f === 'ik') { sp.init[i].k = el.value; sp.init[i].v = ''; }
+  else if (f === 'sk') { sp.steps[i].k = el.value; sp.steps[i].v = ''; }
+  else return;                                   // 数值框在 input 事件里处理，不重画（免得丢焦点）
+  save(); renderCustom();
+});
+$('cdlg').addEventListener('input', (e) => {
+  const el = e.target, f = el.dataset && el.dataset.f;
+  if (f === 'setq') { if (!e.isComposing) custSearch(el); return; }   // 输入法拼字时不重画，选好字再搜
+  if (f === 'n') { custNInput(el); return; }                           // 不重画，免得丢焦点
+  if (f !== 'iv' && f !== 'sv') return;
+  const sp = S.ui.cust, i = +el.dataset.i;
+  (f === 'iv' ? sp.init : sp.steps)[i].v = el.value;
+  save(); custSyncErrors(sp); if (!Object.keys(custErrors(sp)).length) custPreview(sp);
+});
+$('cdlg').addEventListener('compositionend', (e) => { if (e.target.dataset && e.target.dataset.f === 'setq') custSearch(e.target); });
+$('cdlg').addEventListener('keydown', (e) => { if (e.key === 'Escape' && e.target.dataset && e.target.dataset.f === 'setq' && e.target.value) { e.preventDefault(); e.target.value = ''; custSearch(e.target); } });
+// 数量框里按回车 = 点「创建」
+$('cdlg').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing && e.target.dataset && e.target.dataset.f === 'n') { e.preventDefault(); if (!$('cd-go').disabled) doCustom(); } });
+$('cdlg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const sp = S.ui.cust;
+  if (b.id === 'cd-x') closeCustom();
+  else if (b.id === 'cd-go') doCustom();
+  else if (b.id === 'cd-reroll') { custSeed = (custSeed + 0x9E3779B9) | 0; custPreview(sp); }
+  else if (b.dataset.pos) { sp.pos = +b.dataset.pos; save(); renderCustom(); }
+  else if (b.dataset.n) { sp.n = +b.dataset.n; save(); renderCustom(); }
+});
+$('b-custom').onclick = () => openCustom();
+Object.assign(window.YuhunCore, { buildCustom, custNormalize, specFromY, custErrors, pyInitials, searchSets });
+
+/* ======================= 批量强化的统计（画像） =======================
+   每次批量强化（包括「买完直接强化到 +15」）记下每件强化前的样子 [id, 原等级, 原来副属性记录的长度, 强化到几级]，
+   强化完算「实际」；「理论」是按当时的强化规则，把同一批御魂从强化前的样子重新强化很多遍取平均。 */
+let lastReport = null;      // 最近一次批量强化的统计（只在内存里，刷新就没了）
+let batchOnly = null;       // 「在仓库里只看这批」：这批御魂的 id
+let batchTok = 0;
+const EFF_BINS = 9;         // 有效成长四舍五入分组：0、1、…、7、8 及以上（一次成长折 0.8～1 次，所以 0 组就是一条都没有）
+const newAcc = () => ({
+  n: 0, maxG: [0, 0, 0, 0, 0, 0], hits: {}, adds: 0, boosts: 0, spdN: 0, spdG: [0, 0, 0, 0, 0, 0], spdSum: 0, spdMax: 0, six: 0,
+  eff: Object.fromEntries(Object.keys(ROLES).map((r) => [r, new Array(EFF_BINS).fill(0)])), effSum: Object.fromEntries(Object.keys(ROLES).map((r) => [r, 0])),
+});
+/** 量一件强化后的御魂：单条最多成长几次、这批的成长落在哪些副属性（新增还是提升）、速度、各种用途的有效成长 */
+function measureInto(acc, sb, len0) {
+  for (const r in ROLES) {
+    const keys = ROLES[r].keys; let s = 0;
+    for (let i = 0; i < sb.length; i += 3) if (keys.includes(sb[i])) s += sb[i + 1];
+    acc.effSum[r] += s / C10K; acc.eff[r][Math.min(EFF_BINS - 1, Math.floor((s + C10K / 2) / C10K))]++;
+  }
+  acc.n++;
+  const cnt = {};
+  for (let i = 0; i < sb.length; i += 3) cnt[sb[i]] = (cnt[sb[i]] || 0) + 1;
+  let mx = 0; for (const k in cnt) if (cnt[k] > mx) mx = cnt[k];
+  acc.maxG[Math.min(5, Math.max(0, mx - 1))]++;
+  if (mx >= 6) acc.six++;
+  const seen = new Set(); for (let i = 0; i < len0; i += 3) seen.add(sb[i]);
+  for (let i = len0; i < sb.length; i += 3) {
+    const k = sb[i]; acc.hits[k] = (acc.hits[k] || 0) + 1;
+    if (seen.has(k)) acc.boosts++; else { acc.adds++; seen.add(k); }
+  }
+  if (cnt.spd) {
+    acc.spdN++; acc.spdG[Math.min(5, cnt.spd - 1)]++;
+    let s = 0; for (let i = 0; i < sb.length; i += 3) if (sb[i] === 'spd') s += sb[i + 1];
+    const v = SK.spd.unit * s / C10K; acc.spdSum += v; if (v > acc.spdMax) acc.spdMax = v;
+  }
+}
+function makeReport(pre, kind, exp) {
+  const act = newAcc(), trans = {}, ids = [];
+  for (let i = 0; i < pre.length; i += 4) {
+    const y = INDEX.get(pre[i]); if (!y) continue;
+    ids.push(y.id);
+    measureInto(act, y.sb, pre[i + 2]);
+    const t = '+' + pre[i + 1] + ' → +' + pre[i + 3]; trans[t] = (trans[t] || 0) + 1;
+  }
+  return { kind, rule: ENH_RULE, when: Date.now(), exp, pre, ids, trans, act, expd: null, reps: 0, sampled: false };
+}
+/** 算「理论」：最多模拟约 12 万件次（批次小就多重复几遍，最多 20 遍；批次太大就抽样）。
+    分成很多小段在空档里算（每段约 25 毫秒），算的时候页面照常能点能滚；算完调 done */
+function expectReport(rep, done) {
+  const pre = rep.pre, n = pre.length / 4, BUDGET = 120000;
+  const reps = Math.max(1, Math.min(20, Math.floor(BUDGET / Math.max(1, n))));
+  const m = Math.min(n, BUDGET);           // 每遍算几件：批次比 12 万大就均匀抽 12 万件
+  const acc = newAcc();
+  let r = 0, j = 0, cnt = 0;
+  rep.computing = true;
+  const step = () => {
+    if (rep.cancelled) { rep.computing = false; return; }
+    const keep = ENH_RULE, t0 = performance.now();
+    setEnhRule(rep.rule);                    // 只在这一段里换成这批当时的规则，段与段之间不影响别的操作
+    try {
+      while (r < reps) {
+        while (j < m) {
+          const i = (m < n ? Math.floor(j * n / m) : j) * 4, y = INDEX.get(pre[i]); j++;
+          if (y) {                               // 强化只会在副属性记录后面追加，前 len0 个就是强化前的样子
+            const z = { s: y.s, p: y.p, m: y.m, lv: pre[i + 1], f: 0, fx: y.fx, sb: y.sb.slice(0, pre[i + 2]), le: null };
+            enhanceTo(z, pre[i + 3]);
+            measureInto(acc, z.sb, pre[i + 2]);
+          }
+          if ((++cnt & 127) === 0 && performance.now() - t0 > 25) { setTimeout(step, 0); return; }
+        }
+        r++; j = 0;
+      }
+    } finally { setEnhRule(keep); }
+    const k = rep.act.n / Math.max(1, acc.n), sc = (a) => a.map((v) => v * k);
+    const hits = {}; for (const s in acc.hits) hits[s] = acc.hits[s] * k;
+    const eff = {}, effAvg = {};
+    for (const ro in acc.eff) { eff[ro] = sc(acc.eff[ro]); effAvg[ro] = acc.n ? acc.effSum[ro] / acc.n : 0; }
+    rep.expd = { maxG: sc(acc.maxG), hits, adds: acc.adds * k, boosts: acc.boosts * k, spdN: acc.spdN * k, spdG: sc(acc.spdG), spdAvg: acc.spdN ? acc.spdSum / acc.spdN : 0, six: acc.six * k, eff, effAvg };
+    rep.reps = reps; rep.sampled = m < n; rep.simN = acc.n; rep.computing = false;
+    if (done) done();
+  };
+  step();
+}
+const fmtN = (v) => (v >= 100 ? nf(v) : v >= 10 ? v.toFixed(1) : v.toFixed(2));
+const fmtPct = (p) => (p >= 10 ? Math.round(p) : p >= 1 ? p.toFixed(1) : p > 0 ? p.toFixed(2) : '0') + '%';
+/** 竖条图：实际（条）+ 理论（线），条顶标占比；每列可悬停/聚焦看数字。tipNames：悬停框里每列的标题（默认用横轴的字） */
+function vChart(cats, act, exp, total, label, tipNames, unit) {
+  unit = unit || '件';
+  const mx = Math.max(1e-9, ...act, ...(exp || []));
+  let h = '<div class="vchart" role="img" aria-label="' + esc(label) + '"><div class="vc-plot">';
+  cats.forEach((c, i) => {
+    const a = act[i], e = exp ? exp[i] : null, top = Math.max(a, e || 0) / mx * 100;
+    const tip = (tipNames ? tipNames[i] : c) + '\n实际 ' + nf(a) + ' ' + unit + '（' + fmtPct(a / total * 100) + '）' + (e != null ? '\n理论 ' + fmtN(e) + ' ' + unit + '（' + fmtPct(e / total * 100) + '）' : '');
+    h += '<div class="vc-col" tabindex="0" data-tip="' + esc(tip) + '">' +
+      (a ? '<span class="vc-bar" style="height:' + (a / mx * 100).toFixed(2) + '%"></span>' : '') +
+      (e != null ? '<span class="vc-exp" style="bottom:' + (e / mx * 100).toFixed(2) + '%"></span>' : '') +
+      '<span class="vc-cap" style="bottom:' + top.toFixed(2) + '%">' + fmtPct(a / total * 100) + '</span></div>';
+  });
+  return h + '</div><div class="vc-x">' + cats.map((c) => '<span>' + esc(c) + '</span>').join('') + '</div></div>';
+}
+/** 横条图：每种副属性一行，按实际从多到少 */
+function hChart(rows, label) {
+  const mx = Math.max(1e-9, ...rows.map((r) => Math.max(r.a, r.e || 0)));
+  let h = '<div class="hchart" role="img" aria-label="' + esc(label) + '">';
+  for (const r of rows) {
+    const tip = r.name + '\n实际 ' + nf(r.a) + ' 次' + (r.e != null ? '\n理论 ' + fmtN(r.e) + ' 次' : '');
+    h += '<div class="hc-row" tabindex="0" data-tip="' + esc(tip) + '"><span class="hc-lab">' + esc(r.name) + '</span><span class="hc-track">' +
+      (r.a ? '<span class="hc-bar" style="width:' + (r.a / mx * 100).toFixed(2) + '%"></span>' : '') +
+      (r.e != null ? '<span class="hc-exp" style="left:' + (r.e / mx * 100).toFixed(2) + '%"></span>' : '') +
+      '</span><span class="hc-val">' + nf(r.a) + '</span></div>';
+  }
+  return h + '</div>';
+}
+function tableOf(head, rows) {
+  return '<details class="rp-table"><summary>看数字</summary><div class="tblwrap"><table class="t"><tr>' + head.map((x) => '<th>' + esc(x) + '</th>').join('') + '</tr>' +
+    rows.map((r) => '<tr>' + r.map((x, i) => '<td' + (i ? ' class="n"' : '') + '>' + esc(x) + '</td>').join('') + '</tr>').join('') + '</table></div></details>';
+}
+/** 欧气：成长次数最多的那条到 +4 及以上的件数，和理论比（件数少时换成 +3）。
+    标准差 = √(理论件数 ×(1 + 这批件数 ÷ 模拟件数))：前一项是这批自己的随机波动，后一项是理论值本身是模拟出来的误差 */
+function luckLine(A, E, simN) {
+  if (!E) return '<span class="hint">理论值计算中…</span>';
+  let from = 4;
+  const sum = (arr, k) => arr.slice(k).reduce((s, v) => s + v, 0);
+  if (sum(E.maxG, 4) < 3) from = 3;
+  if (sum(E.maxG, from) < 3) return '这批件数太少，看不出欧非。';
+  const a = sum(A.maxG, from), e = sum(E.maxG, from), z = (a - e) / Math.sqrt(e * (1 + A.n / Math.max(1, simN)));
+  const tag = z >= 2 ? '明显偏欧' : z >= 1 ? '略欧' : z > -1 ? '正常' : z > -2 ? '略非' : '明显偏非';
+  return '欧气：<b class="luck ' + (z >= 1 ? 'up' : z <= -1 ? 'down' : '') + '">' + tag + '</b>　单条成长到 +' + from + ' 及以上的 <b>' + nf(a) + '</b> 件，按规则平均 ' + fmtN(e) + ' 件' +
+    (Math.abs(z) < 1 ? '，在正常波动范围内' : '（' + (a > e ? '多' : '少') + ' ' + Math.round(Math.abs(a - e) / e * 100) + '%）') + '。';
+}
+function renderReport(rep) {
+  const A = rep.act, E = rep.expd, n = A.n, legend = '<p class="rp-legend"><span><i class="sw"></i>实际</span><span><i class="ln"></i>理论</span></p>';
+  const tr = Object.entries(rep.trans).sort((a, b) => b[1] - a[1]);
+  const trans = tr.slice(0, 4).map(([t, c]) => t + '：' + nf(c) + ' 件').join('，') + (tr.length > 4 ? ' 等' : '');
+  const tile = (v, t) => '<div class="rp-tile"><b>' + v + '</b><span>' + t + '</span></div>';
+  let h = '<div class="cd-head"><h2>批量强化统计</h2><button class="btn small" type="button" id="rp-x">关闭</button></div>' +
+    '<p class="hint">' + (rep.kind === 'buy' ? '买 ' + nf(n) + ' 件直接强化到 +15' : '批量强化 · ' + esc(trans)) + ' · 规则「' + RULE_NAMES[rep.rule] + '」</p>';
+  h += '<div class="rp-tiles">' + tile(nf(n), '件御魂') + tile(nf(A.adds + A.boosts), '次副属性成长（新增 ' + nf(A.adds) + '、提升 ' + nf(A.boosts) + '）') +
+    tile(nf(rep.exp / D.qjg.exp), '只' + esc(D.qjg.name) + '的经验') + tile(nf(A.six), '件六次全中' + (E ? '（平均 ' + fmtN(E.six) + '）' : '')) + '</div>';
+  h += '<p class="rp-luck">' + luckLine(A, E, rep.simN) + '</p>';
+  h += '<p class="hint">' + (E ? '「理论」是按「' + RULE_NAMES[rep.rule] + '」把这批从强化前的样子' + (rep.sampled ? '抽 ' + nf(rep.simN) + ' 件重新强化一遍' : '重新强化 ' + rep.reps + ' 遍') +
+    '取的平均（共模拟 ' + nf(rep.simN) + ' 件次），图里画成线。' : '「理论」值计算中…') + '</p>';
+  // 1. 单条最多成长几次
+  const cats = ['+0', '+1', '+2', '+3', '+4', '+5'];
+  h += '<section class="rp-sec"><h3>单条副属性最多成长几次</h3><p class="hint">每件取成长次数最多的那条，就是卡片上副属性名后面的 +N。</p>' + legend +
+    vChart(cats, A.maxG, E && E.maxG, n, '单条最多成长次数的分布', cats.map((c) => '单条最多 ' + c)) +
+    tableOf(['单条最多', '实际件数', '占比', '理论件数', '理论占比'], cats.map((c, i) => [c, nf(A.maxG[i]), fmtPct(A.maxG[i] / n * 100), E ? fmtN(E.maxG[i]) : '—', E ? fmtPct(E.maxG[i] / n * 100) : '—'])) + '</section>';
+  // 2. 有效成长（和仓库排序里的「有效成长」一样，可以换用途）
+  const role = ROLES[S.ui.repRole] ? S.ui.repRole : 'out', R = ROLES[role];
+  let nb = 5;                // 后面实际和理论都是 0 的组不画（比如速度最多 6 次）
+  for (let i = EFF_BINS - 1; i >= nb; i--) if (A.eff[role][i] || (E && E.eff[role][i] >= 0.005)) { nb = i + 1; break; }
+  const ecats = Array.from({ length: nb }, (_, i) => (i === EFF_BINS - 1 ? i + '+' : String(i)));
+  const etips = ecats.map((c, i) => '有效 ' + (i === 0 ? '0 次（一条都没有）' : i === EFF_BINS - 1 ? (i - 0.5) + ' 次及以上' : (i - 0.5) + '～' + (i + 0.5) + ' 次'));
+  const effA = A.eff[role].slice(0, nb), effE = E ? E.eff[role].slice(0, nb) : null;
+  h += '<section class="rp-sec"><h3>有效成长</h3><div class="seg" id="rp-role" role="group" aria-label="按什么用途算">' +
+    Object.entries(ROLES).map(([k, r]) => '<button type="button" data-role="' + k + '" aria-pressed="' + (k === role) + '">' + esc(r.name.split('（')[0]) + '</button>').join('') + '</div>' +
+    '<p class="hint">把「' + R.keys.map((k) => SK[k].name).join('、') + '」' + (R.keys.length > 1 ? '这几条' : '这条') + '副属性的数值折成满单位成长的次数，四舍五入分组（就是仓库选「有效成长：' +
+    esc(R.name.split('（')[0]) + '」排序时卡片底下的「有效 N 次」）。平均 ' + (A.effSum[role] / n).toFixed(2) + ' 次' + (E ? '（理论 ' + E.effAvg[role].toFixed(2) + '）' : '') + '。</p>' + legend +
+    vChart(ecats, effA, effE, n, R.name + '有效成长次数的分布', etips) +
+    tableOf(['有效成长', '实际件数', '占比', '理论件数', '理论占比'], ecats.map((c, i) => [etips[i].replace('有效 ', ''), nf(effA[i]), fmtPct(effA[i] / n * 100), effE ? fmtN(effE[i]) : '—', effE ? fmtPct(effE[i] / n * 100) : '—'])) + '</section>';
+  // 3. 速度
+  if (A.spdN) {
+    h += '<section class="rp-sec"><h3>速度</h3><p class="hint">带速度副属性的 ' + nf(A.spdN) + ' 件' + (E ? '（理论 ' + fmtN(E.spdN) + ' 件）' : '') + '：速度平均 ' + (A.spdSum / A.spdN).toFixed(2) +
+      (E ? '（理论 ' + E.spdAvg.toFixed(2) + '）' : '') + '，最高 ' + A.spdMax.toFixed(2) + '。按速度成长了几次分：</p>' + legend +
+      vChart(cats, A.spdG, E && E.spdG, A.spdN, '速度成长次数的分布', cats.map((c) => '速度 ' + c)) +
+      tableOf(['速度成长', '实际件数', '占比', '理论件数'], cats.map((c, i) => [c, nf(A.spdG[i]), fmtPct(A.spdG[i] / A.spdN * 100), E ? fmtN(E.spdG[i]) : '—'])) + '</section>';
+  }
+  // 4. 这批成长落在哪些副属性
+  const rows = D.stats.map((s) => ({ name: s.name, a: A.hits[s.k] || 0, e: E ? (E.hits[s.k] || 0) : null })).sort((a, b) => b.a - a.a || (b.e || 0) - (a.e || 0));
+  h += '<section class="rp-sec"><h3>这批的成长落在哪些副属性</h3><p class="hint">这次强化里每一次追加副属性（新增或提升）命中的属性，一共 ' + nf(A.adds + A.boosts) + ' 次。</p>' + legend +
+    hChart(rows, '每种副属性被命中的次数') +
+    tableOf(['副属性', '实际次数', '理论次数'], rows.map((r) => [r.name, nf(r.a), r.e != null ? fmtN(r.e) : '—'])) + '</section>';
+  // 5. 这批最欧的
+  const top = [];
+  for (const id of rep.ids) {
+    const y = INDEX.get(id); if (!y) continue;
+    const c = {}, s = {}; let best = 0, bestK = null;
+    for (let i = 0; i < y.sb.length; i += 3) { const k = y.sb[i]; c[k] = (c[k] || 0) + 1; s[k] = (s[k] || 0) + y.sb[i + 1]; }
+    for (const k in c) if (c[k] * 1e6 + s[k] > best) { best = c[k] * 1e6 + s[k]; bestK = k; }
+    if (bestK) top.push([best, y]);
+  }
+  top.sort((a, b) => b[0] - a[0]);
+  if (top.length) h += '<section class="rp-sec"><h3>这批最欧的 ' + Math.min(6, top.length) + ' 件</h3><p class="hint">按单条成长次数、再按那条的数值排。点一件放上强化台。</p><div class="grid rp-top">' +
+    top.slice(0, 6).map(([, y]) => cardHTML(y, null)).join('') + '</div></section>';
+  h += '<label class="chk rp-auto"><input type="checkbox" id="rp-auto"' + (S.ui.autoRep !== false ? ' checked' : '') + '> 批量强化后自动弹出这份统计（关掉以后点仓库里的「上次强化统计」看）</label>';
+  h += '<div class="cd-foot"><button class="btn primary" type="button" id="rp-only">在仓库里只看这批（' + nf(rep.ids.length) + ' 件）</button>' +
+    '<button class="btn" type="button" id="rp-x2">关闭</button></div>';
+  $('rdlg-body').innerHTML = h;
+}
+function openReport(rep) {
+  if (!rep) return;
+  renderReport(rep);
+  const dlg = $('rdlg');
+  if (typeof dlg.showModal === 'function') { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+  dlg.scrollTop = 0;
+  if (!rep.expd && !rep.computing) setTimeout(() => expectReport(rep, () => { if (dlg.open && lastReport === rep) { const st = dlg.scrollTop; renderReport(rep); dlg.scrollTop = st; } }), 30);
+}
+function closeReport() { const d = $('rdlg'); hideTip(); if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); }
+/** 一次批量强化结束：存下统计，需要时弹出来 */
+function finishBatch(pre, kind, exp, minN) {
+  if (pre.length / 4 < minN) return;
+  if (lastReport) lastReport.cancelled = true;      // 上一批的理论值还没算完就不算了
+  lastReport = makeReport(pre, kind, exp);
+  if (S.ui.autoRep !== false) openReport(lastReport);
+  else renderStore();
+}
+/** 「在仓库里只看这批」。打开时把筛选条件恢复成「全部」（排序不动）：比如筛了 +0 的强化到 +15，原来的等级筛选会把这批全筛掉 */
+function setBatchOnly(ids) {
+  batchOnly = ids ? new Set(ids) : null; batchTok++; shown = 60;
+  if (ids) { for (const k of ['fset', 'fpos', 'fmain', 'fsub', 'flv', 'fcnt', 'ffx']) S.ui[k] = 'all'; S.ui.flock = false; buildFilters(); save(); }
+  renderStore();
+}
+/** 悬停/聚焦带 data-tip 的元素时显示数字；提示框放在各自的对话框里（对话框在最上层，外面的元素会被遮住） */
+function showTip(el) {
+  const dlg = el.closest('dialog'), tip = dlg && dlg.querySelector('.rtip'); if (!tip) return;
+  tip.textContent = el.dataset.tip; tip.hidden = false;
+  const r = el.getBoundingClientRect(), w = tip.offsetWidth, hh = tip.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, yy = r.top - hh - 8;
+  if (yy < 6) yy = r.bottom + 8;
+  x = Math.max(6, Math.min(innerWidth - w - 6, x));
+  tip.style.left = x + 'px'; tip.style.top = yy + 'px';
+}
+function hideTip() { document.querySelectorAll('.rtip').forEach((t) => { t.hidden = true; }); }
+function wireTips(dlg) {
+  dlg.addEventListener('pointerover', (e) => { const el = e.target.closest('[data-tip]'); if (el) showTip(el); else hideTip(); });
+  dlg.addEventListener('pointerleave', hideTip);
+  dlg.addEventListener('focusin', (e) => { const el = e.target.closest('[data-tip]'); if (el) showTip(el); else hideTip(); });
+  dlg.addEventListener('scroll', hideTip);
+  dlg.addEventListener('close', hideTip);
+}
+wireTips($('rdlg'));
+$('rdlg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'rp-x' || b.id === 'rp-x2') closeReport();
+  else if (b.dataset.role && lastReport) {
+    S.ui.repRole = b.dataset.role; save();
+    const d = $('rdlg'), st = d.scrollTop; renderReport(lastReport); d.scrollTop = st;
+    const nb = d.querySelector('#rp-role [data-role="' + b.dataset.role + '"]'); if (nb) nb.focus();
+  } else if (b.id === 'rp-only' && lastReport) { closeReport(); setBatchOnly(lastReport.ids); toast('仓库里只显示这批 ' + nf(lastReport.ids.length) + ' 件（筛选条件恢复成了「全部」，可以在这批里再筛），点「只看最近一批」旁边的 ✕ 看全部'); }
+  else if (b.classList.contains('yh')) { sel = +b.dataset.id; lastHit = null; closeReport(); renderBench(); patchCards(); scrollBench(); }
+});
+$('rdlg').addEventListener('change', (e) => { if (e.target.id === 'rp-auto') { S.ui.autoRep = e.target.checked; save(); } });
+Object.assign(window.YuhunCore, { newAcc, measureInto, makeReport, expectReport, lastReport: () => lastReport });
+
+/* ======================= 御魂：仓库 ======================= */
+const SORTS = {
+  new: { name: '最新买的' },
+  out: { name: '有效成长：输出', role: 'out' },
+  spd: { name: '有效成长：速度', role: 'spd' },
+  hit: { name: '有效成长：控制', role: 'hit' },
+  res: { name: '有效成长：抵抗', role: 'res' },
+  hp: { name: '有效成长：奶盾', role: 'hp' },
+  lv: { name: '等级高的在前', key: (y) => y.lv },
+  lines: { name: '副属性条数多的在前', key: lineCount },
+};
+/** 按整数键从大到小排，键相同的新买的在前。键和 id 拼成一个数用原生数字排序，20 万件也只要几十毫秒 */
+const ID_SPAN = 2147483648;
+function sortDesc(list, keyInt) {
+  const n = list.length, a = new Float64Array(n);
+  for (let i = 0; i < n; i++) { const y = list[i]; a[i] = keyInt(y) * ID_SPAN + y.id; }
+  a.sort();
+  const out = new Array(n);
+  for (let i = 0; i < n; i++) out[i] = INDEX.get(a[n - 1 - i] % ID_SPAN);
+  return out;
+}
+function buildFilters() {
+  const opt = (v, t) => '<option value="' + esc(v) + '">' + esc(t) + '</option>';
+  $('f-setq').value = ''; $('f-setq-n').textContent = ''; $('f-setq-n').classList.remove('bad');
+  $('f-set').innerHTML = setOptions('filter', '').html;
+  $('f-pos').innerHTML = opt('all', '全部位置') + D.posCn.map((c, i) => opt(i + 1, c + '号位')).join('');
+  $('f-main').innerHTML = opt('all', '全部主属性') + D.stats.map((s) => opt(s.k, s.name)).join('');
+  $('f-sub').innerHTML = opt('all', '不限') + D.stats.map((s) => opt(s.k, s.name)).join('');
+  $('f-sort').innerHTML = Object.entries(SORTS).map(([k, v]) => opt(k, v.name)).join('');
+  $('f-fx').innerHTML = opt('all', '不限') + opt('any', '只看首领御魂') + D.fixedAttrs.map((f, i) => opt(i, SK[f.k].name + ' ' + fmtMain(f.k, f.v))).join('');
+  for (const [id, key] of [['f-set', 'fset'], ['f-pos', 'fpos'], ['f-main', 'fmain'], ['f-sub', 'fsub'], ['f-lv', 'flv'], ['f-cnt', 'fcnt'], ['f-fx', 'ffx'], ['f-sort', 'fsort']]) {
+    const el = $(id); el.value = String(S.ui[key]); if (!el.value) { el.value = 'all'; S.ui[key] = el.value; }
+    el.onchange = () => { S.ui[key] = el.value; shown = 60; save(); renderStore(); };
+  }
+  $('f-lock').checked = !!S.ui.flock;
+  $('f-lock').onchange = () => { S.ui.flock = $('f-lock').checked; shown = 60; save(); renderStore(); };
+}
+let listCache = { key: '', ver: -1, list: [] };
+const listKey = () => { const u = S.ui; return [u.fset, u.fpos, u.fmain, u.fsub, u.flv, u.fcnt, u.ffx, u.flock ? 1 : 0, u.fsort, batchOnly ? 'b' + batchTok : ''].join('|'); };
+/** 当前筛选条件的判断函数 */
+function makePred() {
+  const u = S.ui;
+  const fset = u.fset === 'all' ? null : +u.fset, fpos = u.fpos === 'all' ? null : +u.fpos;
+  const fmain = u.fmain === 'all' ? null : u.fmain, fsub = u.fsub === 'all' ? null : u.fsub;
+  const fcnt = u.fcnt === 'all' || u.fcnt == null ? null : +u.fcnt;
+  const ffx = u.ffx === 'all' || u.ffx == null ? null : u.ffx === 'any' ? 'any' : +u.ffx;
+  const bo = batchOnly;
+  return (y) =>
+    (!bo || bo.has(y.id)) && (fset === null || y.s === fset) && (fpos === null || y.p === fpos) && (fmain === null || y.m === fmain) &&
+    (fsub === null || hasSub(y, fsub)) &&
+    (u.flv === 'all' || (u.flv === '0' ? y.lv === 0 : u.flv === '15' ? y.lv === 15 : (y.lv > 0 && y.lv < 15))) &&
+    (fcnt === null || lineCount(y) === fcnt) &&
+    (ffx === null || (ffx === 'any' ? hasFx(y) : y.fx === ffx)) && (!u.flock || isLock(y));
+}
+/** 当前排序的整数键（null = 按买的先后，最新的在前） */
+function sortKeyFn() { const so = SORTS[S.ui.fsort] || SORTS.new; return so.role ? (y) => scoreInt(y, so.role) : so.key || null; }
+/** 筛选 + 排序。仓库内容和筛选条件都没变时直接用上次的结果（20 万件时点卡片也不卡） */
+function filtered() {
+  const key = listKey();
+  if (listCache.key === key && listCache.ver === invVer) return listCache.list;
+  const kf = sortKeyFn();
+  let list = S.inv.filter(makePred());
+  if (kf) list = sortDesc(list, kf);
+  else list.reverse();                       // S.inv 按 id 从小到大排，倒过来就是最新的在前
+  listCache = { key, ver: invVer, list };
+  return list;
+}
+/** 只改了一件：把它从排好的列表里拿出来，还符合筛选的话按排序二分插回去，不用整个重排 */
+function patchList(y) {
+  const L = listCache.list, kf = sortKeyFn();
+  const i = L.indexOf(y); if (i >= 0) L.splice(i, 1);
+  if (makePred()(y)) {
+    const K = (z) => (kf ? kf(z) * ID_SPAN : 0) + z.id, ky = K(y);
+    let lo = 0, hi = L.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (K(L[mid]) > ky) lo = mid + 1; else hi = mid; }
+    L.splice(lo, 0, y);
+  }
+  listCache.ver = invVer;
+}
+function cardHTML(y, role) {
+  const t = tierOf(y), det = S.ui.detail;
+  const roleKeys = role ? ROLES[role].keys : [];
+  const on = multi ? picked.has(y.id) : y.id === sel;
+  let h = '<button type="button" class="yh' + (multi ? ' multi' : '') + (multi && on ? ' picked' : '') + '" data-id="' + y.id + '" aria-pressed="' + on + '">';
+  h += '<span class="hd">' + (multi ? '<span class="tick" aria-hidden="true">' + (on ? '✓' : '') + '</span>' : '') + '<span class="hex t' + t + '">' + posCn(y.p) + '</span><b>' + esc(SETS[y.s].n) + '</b><span class="lv">+' + y.lv + '</span></span>';
+  h += '<span class="mn"><span>' + SK[y.m].name + '</span><b>' + fmtMain(y.m, mainValue(y)) + '</b></span>';
+  if (hasFx(y)) h += '<span class="fx"><span>固有</span><b>' + fxText(y) + '</b></span>';
+  h += '<ul>';
+  for (const s of subTotals(y)) h += '<li class="' + [roleKeys.includes(s.k) ? 'hi' : '', lastGrowth(y, s.k) ? 'up' : ''].filter(Boolean).join(' ') + '"><span>' + subLabel(y, s) + '</span><span class="v">' + fmtSub(s.k, s.val, det) + '</span></li>';
+  h += '</ul><span class="ft"><span>' + (role ? '有效 ' + score(y, role).toFixed(2) + ' 次' : (D.titles[t] || '')) + '</span><span>' + (isLock(y) ? '<span class="badge lock">锁</span> ' : '') + (isNew(y) ? '<span class="badge new">新</span>' : '') + (isZp(y) ? ' <span class="badge">珍</span>' : '') + '</span></span></button>';
+  return h;
+}
+function renderStore() {
+  const grid = $('grid');
+  if (!loaded) { grid.innerHTML = '<p class="empty">正在读取存档…</p>'; grid.style.display = 'block'; $('st-count').textContent = ''; return; }
+  const list = filtered();
+  const role = (SORTS[S.ui.fsort] || {}).role;
+  $('st-count').textContent = (S.ui.ex ? '下面 6 个是示例，买了之后照常弃置即可 · ' : '') + '共 ' + nf(S.inv.length) + ' / ' + nf(MAX_INV) + ' 个' + (list.length !== S.inv.length ? '，筛出 ' + nf(list.length) + ' 个' : '');
+  if (!S.inv.length) grid.innerHTML = '<p class="empty">仓库是空的。左边选好套装和位置，点「买」。</p>';
+  else if (!list.length) grid.innerHTML = '<p class="empty">没有符合筛选条件的御魂。</p>';
+  else grid.innerHTML = list.slice(0, shown).map((y) => cardHTML(y, role)).join('');
+  grid.style.display = list.length ? '' : 'block';
+  $('more').innerHTML = list.length > shown ? '<button class="btn" type="button">再显示 60 个（还有 ' + nf(list.length - shown) + ' 个）</button>' : '';
+  if (list.length > shown) $('more').firstChild.onclick = () => { shown += 60; renderStore(); };
+  lastList = list;
+  // 批量：多选开关 + 对当前筛选结果的快捷操作
+  let todo = 0, unlocked = 0;
+  for (const y of list) { if (y.lv < 15) todo++; if (!isLock(y)) unlocked++; }
+  const b = $('batch');
+  b.innerHTML = '<button class="btn small" type="button" id="bt-multi" aria-pressed="' + multi + '">' + (multi ? '退出多选' : '多选') + '</button>' +
+    (multi ? '' : '<button class="btn small" type="button" id="bt-max"' + (todo ? '' : ' disabled') + '>把筛出的 ' + nf(todo) + ' 个强化到 +15</button><span id="bt-del"></span>') +
+    (lastReport ? '<button class="btn small" type="button" id="bt-rep">上次强化统计</button>' : '') +
+    (batchOnly ? '<button class="btn small chip" type="button" id="bt-only" title="恢复显示全部">只看最近一批（' + nf(batchOnly.size) + ' 件） ✕</button>' : '');
+  $('bt-multi').onclick = () => { multi = !multi; lastPick = -1; if (!multi) picked.clear(); renderStore(); };
+  if (lastReport) $('bt-rep').onclick = () => openReport(lastReport);
+  if (batchOnly) $('bt-only').onclick = () => setBatchOnly(null);
+  if (!multi) {
+    if (todo) $('bt-max').onclick = () => runEnhance(list.map((y) => y.id), () => 15);
+    if (unlocked) twoStep($('bt-del'), '弃置筛出的 ' + nf(unlocked) + ' 个没锁的', '确定弃置 ' + nf(unlocked) + ' 个', () => discardIds(list.map((y) => y.id)));
+  }
+  renderSelbar(list);
+}
+/** 批量强化：target(y) 给出每件要到的等级 */
+function runEnhance(ids, target) {
+  let exp = 0, n = 0, maxed = 0, fresh = 0, boost = 0, luck = '';
+  const pre = [];                               // 统计用：[id, 原等级, 原副属性记录长度, 目标等级, ...]
+  for (const id of ids) {
+    const y = byId(id); if (!y) continue;
+    const to = Math.min(15, target(y)); if (to <= y.lv) continue;
+    n++;
+    pre.push(y.id, y.lv, y.sb.length, to);
+    const r = enhanceTo(y, to); exp += r.exp;
+    for (const e of r.evs) { if (e.fresh) fresh++; else boost++; }
+    if (y.lv === 15) { maxed++; luck = luck || luckNote(y); }
+    markDirty(y.id);
+  }
+  if (!n) { toast('选中的都已经到这个等级了'); return; }
+  invVer++;
+  S.st.exp += exp; S.st.maxed += maxed; lastHit = null;
+  save(); renderAll();
+  toast('强化了 ' + nf(n) + ' 个：新增副属性 ' + nf(fresh) + ' 次、提升 ' + nf(boost) + ' 次，用掉 ' + nf(exp) + ' 经验 ≈ ' + nf(exp / D.qjg.exp) + ' 只' + D.qjg.name);
+  if (luck) toast(luck, true);
+  finishBatch(pre, 'batch', exp, 2);
+}
+function discardIds(ids) {
+  const kill = new Set();
+  for (const id of ids) { const y = byId(id); if (y && !isLock(y)) kill.add(id); }
+  if (!kill.size) { toast('选中的都锁着，没有可以弃置的'); return; }
+  removeIds(kill);
+  save(); renderAll(); toast('弃置了 ' + nf(kill.size) + ' 个');
+}
+/** 多选时的操作条 */
+function renderSelbar(list) {
+  const bar = $('selbar');
+  bar.hidden = !multi;
+  if (!multi) { bar.innerHTML = ''; return; }
+  for (const id of picked) if (!INDEX.has(id)) picked.delete(id);
+  const ids = [...picked];
+  let todo = 0, locked = 0;
+  for (const id of ids) { const y = INDEX.get(id); if (y.lv < 15) todo++; if (isLock(y)) locked++; }
+  let inList = 0; if (picked.size) for (const y of list) if (picked.has(y.id)) inList++;
+  const outside = ids.length - inList;
+  const lvOpts = [3, 6, 9, 12, 15].map((l) => '<option value="' + l + '"' + (l === selTo ? ' selected' : '') + '>+' + l + '</option>').join('');
+  bar.innerHTML =
+    '<div class="row"><b class="num">已选 ' + nf(ids.length) + ' 个</b>' + (outside ? '<span class="hint">（' + nf(outside) + ' 个不在当前筛选里）</span>' : '') +
+    '<button class="btn small" type="button" id="sb-all">全选筛出的 ' + nf(list.length) + ' 个</button>' +
+    '<button class="btn small" type="button" id="sb-inv"' + (list.length ? '' : ' disabled') + '>反选</button>' +
+    '<button class="btn small" type="button" id="sb-none"' + (ids.length ? '' : ' disabled') + '>清空选择</button>' +
+    '<span class="hint">点卡片选中，按住 Shift 可以连选。想留几个、弃置其余的：先选中要留的，点「反选」，再点「全部弃置」。</span></div>' +
+    '<div class="row"><label class="chk">强化到 <select id="sb-to">' + lvOpts + '</select></label>' +
+    '<button class="btn small primary" type="button" id="sb-go"' + (todo ? '' : ' disabled') + '>强化选中的 ' + nf(todo) + ' 个</button>' +
+    '<button class="btn small" type="button" id="sb-3"' + (todo ? '' : ' disabled') + '>各升到下一个 +3</button>' +
+    '<button class="btn small" type="button" id="sb-lock"' + (ids.length ? '' : ' disabled') + '>锁定</button>' +
+    '<button class="btn small" type="button" id="sb-unlock"' + (locked ? '' : ' disabled') + '>解锁</button>' +
+    '<span id="sb-del"></span></div>';
+  $('sb-all').onclick = () => { for (const y of list) picked.add(y.id); refreshPicks(); };
+  $('sb-none').onclick = () => { picked.clear(); lastPick = -1; refreshPicks(); };
+  // 反选：在当前筛出的范围里，选中的变成不选、没选的变成选中（筛选范围外的选择一并清掉）
+  if (list.length) $('sb-inv').onclick = () => {
+    const next = [];
+    for (const y of list) if (!picked.has(y.id)) next.push(y.id);
+    picked.clear(); for (const id of next) picked.add(id);
+    lastPick = -1; refreshPicks();
+    toast('反选后选中了 ' + nf(next.length) + ' 个');
+  };
+  $('sb-to').onchange = () => { selTo = +$('sb-to').value; };
+  if (todo) {
+    $('sb-go').onclick = () => runEnhance(ids, () => selTo);
+    $('sb-3').onclick = () => runEnhance(ids, (y) => Math.floor(y.lv / 3) * 3 + 3);
+  }
+  const lockAll = (v) => { let n = 0; for (const id of ids) { const y = INDEX.get(id); if (isLock(y) !== v) { setLock(y, v); markDirty(id); n++; } } invVer++; save(); renderBench(); renderStore(); return n; };
+  $('sb-lock').onclick = () => { const n = lockAll(true); toast('锁定了 ' + nf(n) + ' 个'); };
+  if (locked) $('sb-unlock').onclick = () => { const n = lockAll(false); toast('解锁了 ' + nf(n) + ' 个'); };
+  const canDel = ids.length - locked;
+  if (canDel) twoStep($('sb-del'), '全部弃置（选中的 ' + nf(canDel) + ' 个' + (locked ? '，锁着的不动' : '') + '）', '确定全部弃置 ' + nf(canDel) + ' 个', () => discardIds(ids));
+}
+function renderTiles() {
+  const e = S.st.exp;
+  $('yh-tiles').innerHTML =
+    '<div class="tile"><b>' + nf(S.st.bought) + '</b><span>累计买了</span></div>' +
+    '<div class="tile"><b>' + nf(S.st.maxed) + '</b><span>强化到 +15</span></div>' +
+    '<div class="tile"><b>' + nf(e) + '</b><span>用掉的强化经验 ≈ ' + nf(e / D.qjg.exp) + ' 只' + esc(D.qjg.name) + '</span></div>' +
+    '<div class="tile"><b>' + nf(e / D.qjg.exp * D.qjg.gold) + '</b><span>换算金币（青吉鬼）；用贪吃鬼要 ' + nf(e * D.glutGold) + '</span></div>';
+}
+let recCache = { ver: -1, best: null, html: '' };
+const REC_KEYS = ['spd', 'cdm', 'cri', 'atkp', 'hit', 'res', 'hpp'];
+function recScan(items, best) {
+  const n = D.stats.length, sums = new Float64Array(n), cnts = new Uint8Array(n);
+  for (const y of items) {
+    sums.fill(0); cnts.fill(0);
+    const sb = y.sb;
+    for (let i = 0; i < sb.length; i += 3) { const j = SK[sb[i]].i; sums[j] += sb[i + 1]; cnts[j]++; }
+    for (let j = 0; j < n; j++) if (cnts[j] && (!best[j] || sums[j] > best[j].v)) best[j] = { v: sums[j], id: y.id, n: cnts[j] };
+  }
+}
+function recHtml(best) {
+  const keys = REC_KEYS.filter((k) => best[SK[k].i]);
+  return keys.length ? '<span>仓库之最：</span>' + keys.map((k) => { const b = best[SK[k].i]; return '<span>' + SK[k].name + ' <button type="button" data-id="' + b.id + '">+' + fmtSub(k, SK[k].unit * b.v / C10K, true) + '</button>（' + b.n + ' 次）</span>'; }).join('') : '';
+}
+/** 仓库之最：每种副属性的最大值（仓库没变就不重算） */
+function renderRecords() {
+  if (recCache.ver !== invVer) {
+    const best = new Array(D.stats.length).fill(null);
+    recScan(S.inv, best);
+    recCache = { ver: invVer, best, html: recHtml(best) };
+  }
+  $('records').innerHTML = recCache.html;
+}
+/** 只改了一件（强化只会让副属性变大，锁定不改数值）：仓库之最拿这一件比一下就够，不用重扫整个仓库 */
+function touchOne(y) {
+  const recFresh = recCache.ver === invVer;
+  const listFresh = listCache.ver === invVer && listCache.key === listKey();
+  touch(y);
+  if (recFresh) { recScan([y], recCache.best); recCache.ver = invVer; recCache.html = recHtml(recCache.best); }
+  if (listFresh) patchList(y);
+}
+/** 只改卡片上的选中状态，不重画整个仓库（点卡片、全选、反选都走这里） */
+function patchCards() {
+  for (const el of $('grid').children) {
+    const id = +el.dataset.id; if (!id) continue;
+    const on = multi ? picked.has(id) : id === sel;
+    el.setAttribute('aria-pressed', String(on));
+    if (multi) { el.classList.toggle('picked', on); const t = el.querySelector('.tick'); if (t) t.textContent = on ? '✓' : ''; }
+  }
+}
+function refreshPicks() { patchCards(); renderSelbar(lastList); }
+$('records').onclick = (e) => { const b = e.target.closest('button[data-id]'); if (b) { sel = +b.dataset.id; lastHit = null; renderBench(); patchCards(); scrollBench(); } };
+$('grid').onclick = (e) => {
+  const c = e.target.closest('.yh'); if (!c) return;
+  if (multi) {
+    const id = +c.dataset.id;
+    const idx = lastList.indexOf(INDEX.get(id));
+    if (e.shiftKey && lastPick >= 0 && idx >= 0) {
+      const [a, z] = [Math.min(lastPick, idx), Math.max(lastPick, idx)];
+      for (let i = a; i <= z; i++) picked.add(lastList[i].id);
+    } else if (picked.has(id)) picked.delete(id);
+    else picked.add(id);
+    lastPick = idx;
+    refreshPicks();
+    return;
+  }
+  sel = +c.dataset.id; lastHit = null;
+  renderBench(); patchCards(); scrollBench();
+};
+function scrollBench() { if (window.matchMedia('(max-width: 900px)').matches) $('bench').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+/* ======================= 存档：导出 / 导入 / 清空 ======================= */
+/** 在 claude.ai 里打开时用 downloads 能力存文件；本地直接打开的 html 用普通下载；都不行就把文本放进框里让人自己复制 */
+function showExportText(txt) {
+  $('importbox').hidden = false; $('imp-text').value = txt; $('imp-text').select();
+  toast('这里不能直接下载，存档文本放在下面的框里了，全选复制保存即可');
+}
+$('sv-export').onclick = async () => {
+  const txt = serialize();
+  const name = '御魂沙盒存档-' + new Date().toISOString().slice(0, 10) + '.json';
+  if (window.claude && typeof window.claude.use === 'function') {
+    let dl = null;
+    try { dl = await window.claude.use('downloads'); } catch (e) { dl = null; }
+    if (!dl) { showExportText(txt); return; }
+    try { await dl.save({ filename: name, data: new Blob([txt], { type: 'application/json' }) }); toast('存档已保存'); }
+    catch (e) {
+      if (e && e.code === 'declined') return;
+      if (e && e.code === 'rate_limited') { toast('上一个保存提示还开着，处理完再点一次'); return; }
+      showExportText(txt);
+    }
+    return;
+  }
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('存档已导出：' + name + '（' + (txt.length / 1048576).toFixed(1) + ' MB）');
+  } catch (e) { showExportText(txt); }
+};
+let importText = '';
+$('sv-import').onclick = () => { $('importbox').hidden = false; $('imp-text').value = ''; importText = ''; $('imp-text').focus(); };
+$('imp-cancel').onclick = () => { $('importbox').hidden = true; importText = ''; };
+$('imp-file').onchange = () => {
+  const f = $('imp-file').files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { importText = String(r.result); $('imp-text').value = ''; $('imp-text').placeholder = '已读取文件 ' + f.name + '（' + (f.size / 1048576).toFixed(1) + ' MB），点下面的「导入」'; };
+  r.readAsText(f);
+};
+$('imp-go').onclick = () => {
+  const txt = ($('imp-text').value.trim() || importText).trim();
+  if (!txt) { toast('先选一个存档文件，或者把存档文本粘贴进来'); return; }
+  try {
+    S = restore(txt); rebuildIndex();
+    dirtyChunks.clear(); rewriteAll = true; picked.clear(); sel = 0; shown = 60; importText = '';
+    save(); $('importbox').hidden = true; buildBuy(); buildFilters(); buildRules(); renderAll(); toast('导入了 ' + nf(S.inv.length) + ' 个御魂');
+  } catch (e) { toast('导入失败：' + (e.message || '格式不对')); }
+};
+twoStep($('sv-clear'), '清空仓库', '确定清空', () => { clearAll(); S.ui.ex = false; save(); renderAll(); toast('仓库清空了'); });
+
+/* ======================= 买御魂的控件 ======================= */
+$('b-set').onchange = () => { S.ui.bset = $('b-set').value; showFxPicker(); save(); };
+wireSetSearch($('b-setq'), $('b-set'), $('b-setq-n'), 'buy', () => S.ui.bset, (v) => { S.ui.bset = v; showFxPicker(); save(); });
+wireSetSearch($('f-setq'), $('f-set'), $('f-setq-n'), 'filter', () => String(S.ui.fset), (v) => { S.ui.fset = v; shown = 60; save(); renderStore(); });
+$('b-fx').onchange = () => { S.ui.bfx = $('b-fx').value; save(); };
+$('b-pos').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.ui.bpos = +b.dataset.v; setPressed($('b-pos'), S.ui.bpos); buildMainSelect(); save(); };
+$('b-main').onchange = () => { S.ui.bmain = $('b-main').value; save(); };
+$('b-kind').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.ui.bkind = +b.dataset.v; setPressed($('b-kind'), S.ui.bkind); save(); };
+$('b-num').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.ui.bnum = +b.dataset.v; setPressed($('b-num'), S.ui.bnum); save(); };
+$('b-max').onchange = () => { S.ui.bmax = $('b-max').checked; save(); };
+$('b-rule').onclick = (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  S.ui.erule = setEnhRule(b.dataset.v); setPressed($('b-rule'), S.ui.erule); ruleNote();
+  save(); renderBench(); buildRules();
+  toast('强化规则：' + RULE_NAMES[S.ui.erule] + '（之后的强化都按它）');
+};
+$('b-go').onclick = doBuy;
+
+/* ======================= 召唤 ======================= */
+const RLABEL = { R: 'R', SR: 'SR', SSR: 'SSR', SP: 'SP', UR: 'UR' };
+const hname = (id) => (HERO[id] ? HERO[id][0] : String(id));
+function gState() { return S.g[S.g.mode]; }
+const G_HIST_MAX = 3000;                    // 出货记录（SSR/SP/UR）最多留这么多条，抽卡统计用它算间隔和时间线
+function recordDraws(st, res) {
+  res.forEach((c) => {
+    st.cnt[c.r] = (st.cnt[c.r] || 0) + 1;
+    if (c.r !== 'R' && c.r !== 'SR') {
+      st.coll[c.id] = (st.coll[c.id] || 0) + 1;
+      st.hist.unshift([c.n || 0, c.r, c.id, (c.tags || []).join(' ')]);
+    }
+  });
+  if (st.hist.length > G_HIST_MAX) { st.hist.length = G_HIST_MAX; st.histCut = true; }
+}
+function drawMany(times) {
+  const mode = S.g.mode, st = gState();
+  const all = [];
+  for (let i = 0; i < times; i++) {
+    const res = mode === 'sakuya' ? sakuyaDraw(st) : normalDraw(st);
+    res.forEach((c) => { c.n = st.n; });
+    all.push(...res);
+  }
+  recordDraws(st, all);
+  st.last = all.slice(-12).map((c) => [c.id, c.r, c.tags, c.n, c.line || '']);
+  save(); renderGacha();
+  const got = all.find((c) => c.id === SAKUYA.id && c.tags && (c.tags.includes('UP') || c.tags.includes('保底')));
+  if (got) { toast('第 ' + got.n + ' 抽，' + SAKUYA.name + '来了！', true); if (S.ui.autoGRep !== false) openGRep(); }
+}
+function drawUntilSakuya() {
+  const st = S.g.sakuya; if (st.up) return;
+  const all = []; const start = st.n;
+  while (!st.up) { const res = sakuyaDraw(st); res.forEach((c) => { c.n = st.n; }); all.push(...res); }
+  recordDraws(st, all);
+  st.last = all.slice(-10).map((c) => [c.id, c.r, c.tags, c.n, '']);
+  const ss = all.filter((c) => isSS(c.r)).length;
+  save(); renderGacha();
+  toast('抽了 ' + (st.n - start) + ' 次出' + SAKUYA.name + '（第 ' + st.up + ' 抽），途中 SSR/SP 共 ' + ss + ' 个', true);
+  if (S.ui.autoGRep !== false) openGRep();
+}
+function doTen() {
+  const st = S.g.ten;
+  const res = tenGold(st.first || 0);
+  st.n += 1;
+  res.forEach((c) => { c.n = st.n; });
+  recordDraws(st, res);
+  st.last = res.map((c) => [c.id, c.r, c.tags, c.n, c.line]);
+  save(); renderGacha();
+}
+/** 单个式神概率 = 该稀有度总概率 ÷ 该稀有度式神数 */
+function perHero(pools, order) {
+  return order.filter((r) => pools[r] && pools[r].length).map((r) => {
+    const n = pools[r].length, p = G.rates[r] / n;
+    return '每位 ' + r + ' ' + (p < 0.1 ? p.toFixed(4) : p.toFixed(2)) + '%（' + G.rates[r] + '% ÷ ' + n + '）';
+  }).join('，');
+}
+function renderGacha() {
+  const mode = S.g.mode, st = gState();
+  setPressed($('g-mode'), mode);
+  const opts = $('g-opts'), act = $('g-actions'), stat = $('g-status');
+  const repBtn = st.n ? '<button class="btn" type="button" id="ga-rep">统计画像</button>' : '';
+  $('g-miles-box').hidden = mode !== 'sakuya';
+  if (mode === 'sakuya') {
+    $('g-title').textContent = SAKUYA.name + ' · 「' + SAKUYA.title + '」';
+    $('g-sub').textContent = SAKUYA.time;
+    opts.innerHTML =
+      '<div class="field"><span>SSR 全集赏</span><div class="seg" id="go-full"><button type="button" data-v="1">已达成（' + Math.round(SAKUYA.curve['1'][0][1] * 100) + '% 起，' + SAKUYA.floor['1'] + ' 抽保底）</button><button type="button" data-v="0">未达成（' + Math.round(SAKUYA.curve['2'][0][1] * 100) + '% 起，' + SAKUYA.floor['2'] + ' 抽保底）</button></div></div>' +
+      '<div class="field"><span>召唤类型（只决定歪到哪些 SSR/SP）</span><div class="seg" id="go-pool"><button type="button" data-v="new">旭华召唤（2020 年 5 月之后的 ' + SAKUYA.poolNew.length + ' 位）</button><button type="button" data-v="old">瑶归召唤（之前的 ' + SAKUYA.poolOld.length + ' 位）</button></div></div>' +
+      '<p class="hint">没变成' + SAKUYA.name + '的那部分，同一稀有度内每位式神概率相同：' + perHero(sakuyaPools(st.pool), ['SSR', 'SP']) + '（SSR 里也有' + SAKUYA.name + '）。UP 期间出 SSR 或 SP 时先判定是不是' + SAKUYA.name + '，所以每位还要再乘以 1 − 当前指定概率。</p>';
+    setPressed($('go-full'), st.full ? 1 : 0); setPressed($('go-pool'), st.pool);
+    const lock = st.n > 0;
+    $('go-full').querySelectorAll('button').forEach((b) => { b.disabled = lock && String(st.full ? 1 : 0) !== b.dataset.v; });
+    $('go-full').onclick = (e) => { const b = e.target.closest('button'); if (!b || b.disabled) return; st.full = b.dataset.v === '1'; save(); renderGacha(); };
+    $('go-pool').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; st.pool = b.dataset.v; save(); renderGacha(); };
+    act.innerHTML = '<button class="btn primary" type="button" id="ga-1">召唤 1 次</button><button class="btn primary" type="button" id="ga-10">召唤 10 次</button>' +
+      '<button class="btn" type="button" id="ga-until"' + (st.up ? ' disabled' : '') + '>一直抽到' + SAKUYA.name + '</button>' + repBtn + '<span id="ga-reset"></span>';
+    const rate = st.up ? 0 : upRate(st.full, st.n);
+    const floorN = SAKUYA.floor[st.full ? '1' : '2'];
+    const ss = (st.cnt.SSR || 0) + (st.cnt.SP || 0);
+    stat.innerHTML =
+      '<div class="tile"><b>' + nf(st.n) + '</b><span>已召唤</span></div>' +
+      '<div class="tile"><b>' + (st.up ? '第 ' + st.up + ' 抽' : '还没出') + '</b><span>' + SAKUYA.name + '</span></div>' +
+      '<div class="tile"><b>' + (st.up ? '—' : Math.round(rate * 100) + '%') + '</b><span>' + (st.up ? 'UP 已用掉' : '下一个 SSR/SP 是' + SAKUYA.name + '的概率') + '</span></div>' +
+      '<div class="tile"><b>' + (SAKUYA.pity - st.pity) + '</b><span>最多再抽这么多次必出 SSR/SP</span></div>' +
+      '<div class="tile"><b>' + (st.up ? '—' : nf(floorN - st.n)) + '</b><span>距 ' + floorN + ' 抽保底</span></div>' +
+      '<div class="tile"><b>' + nf(ss) + '</b><span>SSR/SP（' + (st.n ? (ss / st.n * 100).toFixed(2) : '0') + '%）</span></div>';
+    renderMiles(st);
+  } else if (mode === 'normal') {
+    $('g-title').textContent = '常驻召唤';
+    $('g-sub').textContent = '神秘的符咒 / 勾玉 / 现世符咒，概率相同';
+    const R = G.rates;
+    opts.innerHTML = '<p class="hint">公示概率：R ' + R.R + '%，SR ' + R.SR + '%，SSR ' + R.SSR + '%，SP ' + R.SP + '%，UR ' + R.UR + '%。没有保底。卡池是当前全部可召唤式神（' + POOL.SSR.length + ' 位 SSR、' + POOL.SP.length + ' 位 SP，含' + SAKUYA.name + '）。</p>' +
+      '<p class="hint">同一稀有度内每位式神概率相同，每抽：' + perHero(POOL, ['SSR', 'SP', 'SR', 'R', 'UR']) + '。</p>';
+    act.innerHTML = '<button class="btn primary" type="button" id="ga-1">召唤 1 次</button><button class="btn primary" type="button" id="ga-10">召唤 10 次</button><button class="btn" type="button" id="ga-100">召唤 100 次</button>' + repBtn + '<span id="ga-reset"></span>';
+    const ss = (st.cnt.SSR || 0) + (st.cnt.SP || 0);
+    stat.innerHTML = '<div class="tile"><b>' + nf(st.n) + '</b><span>已召唤</span></div>' +
+      ['UR', 'SP', 'SSR', 'SR', 'R'].map((r) => '<div class="tile"><b>' + nf(st.cnt[r] || 0) + '</b><span>' + r + '</span></div>').join('') +
+      '<div class="tile"><b>' + (st.n ? (ss / st.n * 100).toFixed(2) : '0') + '%</b><span>SSR/SP 实际出率</span></div>';
+  } else {
+    $('g-title').textContent = '十连十金';
+    $('g-sub').textContent = '十周年「拾光金眷」福利召唤的规则';
+    const pickOpts = '<option value="0">随机（' + esc(G.ten.randomNote) + '，' + G.ten.random.length + ' 位）</option>' +
+      G.ten.pick.map((id) => '<option value="' + id + '">' + esc(hname(id)) + '</option>').join('');
+    opts.innerHTML = '<label class="field"><span>第一位：随机，或从' + esc(G.ten.pickNote) + '里自选</span><select id="go-first">' + pickOpts + '</select></label>' +
+      '<p class="hint">十连全是 SSR/SP：第一位自选或随机，后面九位依次从「一载」到「九载」各自的式神里随机出一位。</p>';
+    $('go-first').value = String(st.first || 0);
+    $('go-first').onchange = () => { st.first = +$('go-first').value; save(); };
+    act.innerHTML = '<button class="btn primary" type="button" id="ga-ten">十连十金</button>' + repBtn + '<span id="ga-reset"></span>';
+    const kinds = Object.keys(st.coll).length;
+    stat.innerHTML = '<div class="tile"><b>' + nf(st.n) + '</b><span>十连十金次数</span></div><div class="tile"><b>' + kinds + '</b><span>出过的 SSR/SP 种类</span></div>';
+  }
+  // 按钮
+  const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+  on('ga-1', () => drawMany(1)); on('ga-10', () => drawMany(10)); on('ga-100', () => drawMany(100));
+  on('ga-until', drawUntilSakuya); on('ga-ten', doTen); on('ga-rep', openGRep);
+  if (st.n) twoStep($('ga-reset'), '重新开始', '确定清零这一项', () => {
+    const fresh = newGacha()[mode];
+    if (mode === 'sakuya') { fresh.full = st.full; fresh.pool = st.pool; }
+    if (mode === 'ten') fresh.first = st.first;
+    S.g[mode] = fresh; save(); renderGacha();
+  });
+  // 结果卡片
+  $('g-cards').innerHTML = (st.last || []).map(([id, r, tags, n, line]) =>
+    '<div class="card ' + r + '"><span class="rar">' + RLABEL[r] + (n ? ' · 第 ' + n + (mode === 'ten' ? ' 次' : ' 抽') : '') + '</span><span class="who">' + esc(hname(id)) + '</span>' +
+    ((tags && tags.length) ? '<span class="tags">' + tags.map((t) => '<span class="tag' + (t === 'UP' || t === '保底' ? ' up' : / 抽必出|赠礼/.test(t) ? ' pity' : '') + '">' + esc(t) + '</span>').join('') + '</span>' : '') +
+    (line ? '<span class="line">' + esc(line) + '</span>' : '') + '</div>').join('') ||
+    '<p class="hint">点上面的按钮开始召唤。</p>';
+  // 记录 / 图鉴
+  $('g-hist').innerHTML = st.hist.slice(0, 200).map(([n, r, id, tg]) => '<li><span class="n">' + (n ? n : '') + '</span><span class="r" style="color:var(--r-' + r.toLowerCase() + ')">' + r + '</span><span>' + esc(hname(id)) + (tg ? ' <span class="tag' + (/UP|保底/.test(tg) ? ' up' : '') + '">' + esc(tg) + '</span>' : '') + '</span></li>').join('') || '<li class="hint">还没有出过 SSR/SP/UR</li>';
+  $('g-hist-n').textContent = st.hist.length ? '最近 ' + Math.min(200, st.hist.length) + ' 条' : '';
+  const order = { UR: 0, SP: 1, SSR: 2 };
+  const coll = Object.entries(st.coll).map(([id, c]) => [+id, c, HERO[id] ? HERO[id][1] : 'SSR']).sort((a, b) => order[a[2]] - order[b[2]] || b[1] - a[1]);
+  $('g-coll').innerHTML = coll.map(([id, c, r]) => '<span class="' + r + '">' + esc(hname(id)) + (c > 1 ? '<em>×' + c + '</em>' : '') + '</span>').join('') || '<span class="hint" style="border:0">空</span>';
+  $('g-coll-n').textContent = coll.length ? coll.length + ' 位' : '';
+  // 模拟
+  const sim = $('g-sim');
+  if (mode === 'sakuya') {
+    sim.innerHTML = '<div class="row"><button class="btn small" type="button" id="ga-sim">模拟 1 万个人抽' + SAKUYA.name + '</button><span class="hint" id="ga-sim-out">看看一般要几抽（按当前的全集赏选项）</span></div>';
+    $('ga-sim').onclick = () => {
+      const t0 = performance.now(); const r = simSakuya(st.full, 10000); const ms = Math.round(performance.now() - t0);
+      $('ga-sim-out').innerHTML = '平均 <b class="num">' + r.mean.toFixed(0) + '</b> 抽，一半人 ≤ <b class="num">' + r.q50 + '</b>，九成人 ≤ <b class="num">' + r.q90 + '</b>，99% ≤ <b class="num">' + r.q99 + '</b>；吃到 ' + SAKUYA.floor[st.full ? '1' : '2'] + ' 抽保底的 ' + (r.floorHits * 100).toFixed(1) + '%（' + ms + ' 毫秒）';
+    };
+  } else sim.innerHTML = '';
+}
+function renderMiles(st) {
+  const t = st.full ? '1' : '2';
+  const cv = SAKUYA.curve[t];
+  let h = '';
+  for (const [c, txt] of SAKUYA.miles[t]) h += '<li class="' + (st.n >= c ? 'done' : '') + '"><span class="num">' + c + '</span><span>' + esc(txt) + '</span></li>';
+  $('g-miles').innerHTML = h;
+  const now = st.up ? -1 : st.n;
+  let rows = '';
+  cv.forEach(([c, v], i) => {
+    const next = cv[i + 1] ? cv[i + 1][0] : Infinity;
+    rows += '<tr class="' + (now >= c && now < next ? 'now' : '') + '"><th>第 ' + (c + 1) + ' 抽起</th><td>' + Math.round(v * 100) + '%</td></tr>';
+  });
+  $('g-curve').innerHTML = '<p class="hint">' + SAKUYA.name + '的指定概率随累计召唤次数提升（' + (st.full ? '已达成全集赏' : '未达成全集赏') + '），第 ' + SAKUYA.floor[t] + ' 抽必出：</p><table class="curve">' + rows + '</table>';
+}
+$('g-mode').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; S.g.mode = b.dataset.v; save(); renderGacha(); };
+
+/* ======================= 召唤的统计（画像） =======================
+   统计当前这一项（咲耶 UP / 常驻 / 十连十金）从「重新开始」以来的全部召唤，「实际」用存档里的计数和出货记录（最近 3000 个 SSR/SP/UR）算。
+   「理论」尽量不受「什么时候停手」影响（比如「一直抽到咲耶」总是停在出货的那一抽，拿固定抽数的模拟比会偏欧）：
+   · 欧气、各稀有度：被保底强制的那几抽一定出货，不算运气；其余每抽按公示概率（SSR/SP 1.25%）算期望和二项分布；
+   · 出货间隔、60 抽必出次数：按每个间隔的理论分布（每抽 1.25%，咲耶池第 60 抽必出）乘以实际的间隔个数；
+   · 图鉴：按实际抽到的 SSR、SP 个数，算同一卡池里平均会有几位不同的；
+   · 咲耶第几抽出：按规则精确递推；最长没出、十连十金的图鉴：按同样的选项从头模拟（分段算，不卡页面）。 */
+const isGift = (tg) => / 抽赠礼/.test(tg || '');
+const G_MODE_NAMES = { sakuya: () => SAKUYA.name + ' · 限时 UP', normal: () => '常驻召唤', ten: () => '十连十金' };
+const pSS = () => (G.rates.SSR + G.rates.SP) / 100;
+const pSSTxt = () => +(G.rates.SSR + G.rates.SP).toFixed(2) + '%';
+/** 咲耶第几抽出的精确分布：pt[t] = 正好第 t 抽出咲耶的概率（状态 = 已经连续几抽没出 SSR/SP） */
+const SK_DIST = {};
+function sakuyaDist(full) {
+  const key = full ? '1' : '2';
+  if (SK_DIST[key]) return SK_DIST[key];
+  const floorN = SAKUYA.floor[key], P = SAKUYA.pity, p = pSS();
+  let f = new Float64Array(P); f[0] = 1;
+  const pt = new Float64Array(floorN + 1);
+  for (let n = 0; n < floorN; n++) {                 // 算第 n + 1 抽
+    if (n + 1 === floorN) { let m = 0; for (let j = 0; j < P; j++) m += f[j]; pt[floorN] = m; break; }
+    const u = upRate(full, n), g = new Float64Array(P);
+    for (let j = 0; j < P; j++) {
+      const m = f[j]; if (!m) continue;
+      const ps = j >= P - 1 ? 1 : p;                 // 连续 59 抽没出，第 60 抽必出
+      pt[n + 1] += m * ps * u;
+      g[0] += m * ps * (1 - u);
+      if (j < P - 1) g[j + 1] += m * (1 - ps);
+    }
+    f = g;
+  }
+  const cdf = new Float64Array(floorN + 1); let c = 0, mean = 0;
+  for (let t = 1; t <= floorN; t++) { c += pt[t]; cdf[t] = c; mean += t * pt[t]; }
+  const q = (x) => { for (let t = 1; t <= floorN; t++) if (cdf[t] >= x - 1e-12) return t; return floorN; };
+  return (SK_DIST[key] = { floorN, pt, cdf, mean, q50: q(0.5), q90: q(0.9), q99: q(0.99) });
+}
+/** SSR/SP 出货间隔的分组和每组的理论概率：每抽 1.25%，咲耶池第 60 抽必出，常驻没有保底 */
+function gapBins(mode) {
+  const p = pSS(), q = 1 - p, P = SAKUYA.pity;
+  const pr = (lo, hi) => Math.pow(q, lo - 1) - Math.pow(q, hi);          // 隔 lo～hi 抽出
+  if (mode === 'sakuya') {
+    const edges = [10, 20, 30, 40, 50, P - 1, P];
+    const cats = ['1–10', '11–20', '21–30', '31–40', '41–50', '51–' + (P - 1), String(P)];
+    const probs = edges.map((e, i) => (i === edges.length - 1 ? Math.pow(q, P - 1) : pr(i ? edges[i - 1] + 1 : 1, e)));
+    return { edges, cats, probs, tips: cats.map((c, i) => (i === cats.length - 1 ? '第 ' + P + ' 抽（必出）' : '隔 ' + c.replace('–', '～') + ' 抽出')) };
+  }
+  const edges = [20, 40, 60, 80, 100, 120, 140, 160, 180, 200, Infinity];
+  const cats = edges.map((e, i) => (e === Infinity ? '200+' : (i * 20 + 1) + '–' + e));
+  const probs = edges.map((e, i) => (e === Infinity ? Math.pow(q, 200) : pr(i * 20 + 1, e)));
+  return { edges, cats, probs, tips: cats.map((c) => (c === '200+' ? '隔 200 抽以上才出' : '隔 ' + c.replace('–', '～') + ' 抽出')) };
+}
+const binOf = (edges, g) => { for (let i = 0; i < edges.length; i++) if (g <= edges[i]) return i; return edges.length - 1; };
+/** 「实际」：从存档的计数和出货记录量出来 */
+function gActual(mode, st) {
+  const N = st.n, A = { mode, N, cut: !!st.histCut };
+  const hist = st.hist.slice().reverse();            // 从早到晚
+  const coll = Object.entries(st.coll).filter(([id]) => HERO[id] && isSS(HERO[id][1]));
+  A.distinct = coll.length;
+  A.dupes = coll.filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  if (mode === 'ten') { A.cards = N * 10; return A; }
+  const cnt = Object.assign({ R: 0, SR: 0, SSR: 0, SP: 0, UR: 0 }, st.cnt);
+  A.gift = mode === 'sakuya' && N >= 40;
+  if (A.gift) {                                      // 40 抽赠礼不是抽出来的，不算出货
+    const ge = hist.find((e) => isGift(e[3])); A.giftR = ge ? ge[1] : (cnt.SSR ? 'SSR' : 'SP');
+    cnt[A.giftR] = Math.max(0, cnt[A.giftR] - 1);
+  }
+  A.cnt = cnt; A.ss = cnt.SSR + cnt.SP; A.ur = cnt.UR;
+  A.hits = hist.filter((e) => !isGift(e[3]) && (isSS(e[1]) || e[1] === 'UR'));
+  const ss = A.hits.filter((e) => isSS(e[1]));
+  // 统计窗口：记录完整就是全部 N 抽；被截断过就只看最早那条记录之后的抽
+  A.from = A.cut && ss.length ? ss[0][0] : 0;
+  // 被强制出货的抽：连续 59 抽没出后的第 60 抽（不管那一抽本来抽没抽中，这一抽出货的概率都是 1），和咲耶的 450/800 抽保底
+  let pv = A.cut ? null : 0;
+  for (const e of ss) { e.forced = (mode === 'sakuya' && pv != null && e[0] - pv === SAKUYA.pity) || /保底/.test(e[3] || ''); pv = e[0]; }
+  const inW = ss.filter((e) => e[0] > A.from);
+  A.wPulls = N - A.from; A.wSS = inW.length; A.wForced = inW.filter((e) => e.forced).length;
+  A.wNf = A.wPulls - A.wForced;                       // 窗口里不是被保底强制的抽
+  A.forced = A.cut ? Math.round(A.wForced * N / Math.max(1, A.wPulls)) : A.wForced;    // 截断时按比例估全部
+  A.nf = N - A.forced;
+  A.kSSR = cnt.SSR - (mode === 'sakuya' && st.up ? 1 : 0); A.kSP = cnt.SP;   // 普通抽出来的 SSR / SP（不含 UP/保底的咲耶）
+  const gb = gapBins(mode); A.gaps = new Array(gb.cats.length).fill(0);
+  let prev = A.cut ? null : 0, maxD = 0;
+  for (const [n] of ss) { if (prev != null) { const g = n - prev; A.gaps[binOf(gb.edges, g)]++; if (g - 1 > maxD) maxD = g - 1; } prev = n; }
+  if (prev != null && N - prev > maxD) maxD = N - prev;
+  A.maxD = maxD; A.cur = prev != null ? N - prev : null;
+  A.nGaps = A.gaps.reduce((s, v) => s + v, 0);
+  A.pity = ss.filter((e) => / 抽必出/.test(e[3] || '')).length;
+  if (mode === 'sakuya') { A.up = st.up; A.full = st.full; A.wai = ss.filter((e) => (!st.up || e[0] < st.up) && e[2] !== SAKUYA.id).length; }
+  return A;
+}
+/** 二项分布 X ~ B(n, p)：P(X < a) + P(X = a)/2，次数多时用正态近似 */
+function binomAbove(n, p, a) {
+  if (n <= 0) return null;
+  const q = 1 - p, mu = n * p;
+  if (mu > 200) { const z = (a - mu) / Math.sqrt(mu * q); return normCdf(z); }
+  let lp = n * Math.log(q), lo = 0, eq = 0;            // log P(X = 0)
+  for (let k = 0; k <= a; k++) {
+    const v = Math.exp(lp);
+    if (k < a) lo += v; else eq = v;
+    lp += Math.log((n - k) / (k + 1)) + Math.log(p / q);
+  }
+  return lo + eq / 2;
+}
+function normCdf(z) {                                  // Abramowitz-Stegun 7.1.26
+  const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z / 2);
+  return z >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+}
+/** 不受停手时机影响的「理论」：都按实际这一路算 */
+function gExpect(mode, st, A) {
+  if (mode === 'ten') return null;
+  const p = pSS(), q = 1 - p, gb = gapBins(mode), R = G.rates;
+  const E = { p, nf: A.nf, forced: A.forced };
+  E.cnt = { R: A.nf * R.R / 100, SR: A.nf * R.SR / 100, SS: A.forced + A.nf * p, UR: A.nf * R.UR / 100 };
+  E.gaps = gb.probs.map((x) => x * A.nGaps);
+  E.pity = mode === 'sakuya' ? A.nGaps * Math.pow(q, SAKUYA.pity) : 0;     // 第 60 抽本来没抽中、靠「60 抽必出」才出的
+  // 欧气：窗口里非保底的抽，出了几个 vs 二项分布
+  E.luck = { n: A.wNf, a: A.wSS - A.wForced, e: A.wNf * p, sd: Math.sqrt(A.wNf * p * q) };
+  E.luck.pct = binomAbove(A.wNf, p, E.luck.a);
+  // 图鉴：按实际抽到的 SSR、SP 个数，同一卡池里每位被抽到的概率相同
+  const pools = mode === 'sakuya' ? sakuyaPools(st.pool) : POOL, m1 = pools.SSR.length, m2 = pools.SP.length;
+  const notS = Math.pow(1 - 1 / m1, Math.max(0, A.kSSR)), notP = Math.pow(1 - 1 / m2, Math.max(0, A.kSP));
+  let dist = m1 * (1 - notS) + m2 * (1 - notP);
+  if (mode === 'sakuya' && A.up) dist += notS;          // UP/保底的咲耶一定有：之前普通 SSR 里没抽到过她的概率
+  if (A.gift) {                                       // 40 抽赠礼：随机一位，是新的概率
+    let pn = 0;
+    for (const id of SAKUYA.bonus40) pn += id === SAKUYA.id && A.up ? 0 : pools.SSR.includes(id) ? notS : pools.SP.includes(id) ? notP : 1;
+    dist += pn / SAKUYA.bonus40.length;
+  }
+  E.distinct = dist; E.poolN = m1 + m2;
+  return E;
+}
+/** 只有「最长连续没出」（常驻）和十连十金的图鉴需要模拟：按同样的选项从头抽同样多次，重复很多遍 */
+let gTheory = { key: '', data: null, job: null };
+const gKey = (mode, st) => [mode, st.n, mode === 'sakuya' ? (st.full ? 1 : 0) + st.pool : '', mode === 'ten' ? st.first || 0 : ''].join('|');
+function gSimulate(mode, st, done) {
+  const N = st.n, BUDGET = mode === 'ten' ? 100000 : 1500000;
+  const per = Math.max(1, Math.min(N, BUDGET)), reps = Math.max(1, Math.min(200, Math.floor(BUDGET / per)));
+  const job = { cancelled: false }, acc = { maxD: 0, distinct: [] }, first = st.first || 0, p = pSS();
+  let r = 0, i = 0, cur = null;
+  const step = () => {
+    if (job.cancelled) return;
+    const t0 = performance.now();
+    while (r < reps) {
+      if (!cur) cur = { seen: new Set(), last: 0, maxD: 0 };
+      while (i < per) {
+        i++;
+        if (mode === 'ten') { for (const c of tenGold(first)) cur.seen.add(c.id); }
+        else if (rnd() < p) { if (i - 1 - cur.last > cur.maxD) cur.maxD = i - 1 - cur.last; cur.last = i; }
+        if ((i & 2047) === 0 && performance.now() - t0 > 25) { setTimeout(step, 0); return; }
+      }
+      if (per - cur.last > cur.maxD) cur.maxD = per - cur.last;
+      acc.maxD += cur.maxD; acc.distinct.push(cur.seen.size);
+      cur = null; i = 0; r++;
+    }
+    const avg = (a) => a.reduce((s, v) => s + v, 0) / Math.max(1, a.length);
+    if (done) done({ reps, per, scaled: per < N, maxD: acc.maxD / reps, distinct: avg(acc.distinct), distinctArr: per < N ? null : acc.distinct });
+  };
+  step();
+  return job;
+}
+function pctAbove(arr, a) {                            // 实际值在模拟的那些遍里排第几（比百分之几的人多）
+  if (!arr || arr.length < 50) return null;
+  let lo = 0, eq = 0; for (const x of arr) { if (x < a) lo++; else if (x === a) eq++; }
+  return (lo + eq / 2) / arr.length;
+}
+const gPct = (x) => fmtPct(x * 100);
+function gLuckLine(mode, A, E) {
+  const L = E.luck;
+  const head = A.forced && mode === 'sakuya' ? '不算 ' + nf(A.forced) + ' 个保底送的，其余 ' + nf(L.n) + ' 抽' : '这 ' + nf(L.n) + ' 抽';
+  if (L.n < 10) return head + '，抽数太少，看不出欧非。';                 // 二项分布的位置抽数少也能比，只是太少时没意义
+  // 按二项分布的位置分档（和正态的 ±1、±2 个标准差对应：15.9% / 84.1%、2.3% / 97.7%），抽数少时比用标准差准
+  const c = L.pct;
+  const tag = c >= 0.977 ? '明显偏欧' : c >= 0.841 ? '略欧' : c > 0.159 ? '正常' : c > 0.023 ? '略非' : '明显偏非';
+  const norm = c > 0.159 && c < 0.841;
+  return '欧气：<b class="luck ' + (c >= 0.841 ? 'up' : c <= 0.159 ? 'down' : '') + '">' + tag + '</b>　' + head + '出了 <b>' + nf(L.a) + '</b> 个 SSR/SP，按每抽 ' + pSSTxt() + ' 平均 ' + fmtN(L.e) + ' 个' +
+    (norm ? '，在正常波动范围内' : '（' + (L.a > L.e ? '多' : '少') + ' ' + Math.round(Math.abs(L.a - L.e) / L.e * 100) + '%）') +
+    '，同样抽数下比 ' + gPct(c) + ' 的人出得多。';
+}
+function sakuyaLine(A) {
+  const d = sakuyaDist(A.full);
+  if (A.up) {
+    return SAKUYA.name + '：第 <b>' + nf(A.up) + '</b> 抽出' + (A.up === d.floorN ? '（吃到了 ' + d.floorN + ' 抽保底）' : '') + '，比 ' + gPct(1 - d.cdf[A.up]) + ' 的人早，' +
+      gPct(d.cdf[A.up - 1]) + ' 的人比你早。出' + SAKUYA.name + '之前歪了 ' + nf(A.wai) + ' 个别的 SSR/SP。';
+  }
+  const n = Math.min(A.N, d.floorN), left = 1 - d.cdf[n];
+  let rest = 0; for (let t = n + 1; t <= d.floorN; t++) rest += (t - n) * d.pt[t];
+  return SAKUYA.name + '：已经抽了 ' + nf(A.N) + ' 抽还没出，' + gPct(d.cdf[n]) + ' 的人在这么多抽以内已经出了；按规则平均还要 ' + Math.round(rest / Math.max(1e-12, left)) + ' 抽，最多还要 ' + (d.floorN - n) + ' 抽（' + d.floorN + ' 抽保底）。';
+}
+/** 分布图：所有人第几抽出（灰条）+ 你在哪（蓝线） */
+function distChart(bins, youAt, youLabel, label) {
+  const mx = Math.max(1e-12, ...bins.map((b) => b.p));
+  let h = '<div class="vchart dchart" role="img" aria-label="' + esc(label) + '"><div class="vc-plot">';
+  for (const b of bins) h += '<div class="vc-col" tabindex="0" data-tip="' + esc(b.name + '\n' + gPct(b.p) + ' 的人') + '">' + (b.p > 0 ? '<span class="vc-bar dist" style="height:' + (b.p / mx * 100).toFixed(2) + '%"></span>' : '') + '</div>';
+  if (youAt != null) {
+    let bi = bins.findIndex((b) => youAt >= b.lo && youAt <= b.hi); if (bi < 0) bi = bins.length - 1;
+    const b = bins[bi], frac = Math.min(1, Math.max(0, (youAt - b.lo + 0.5) / (b.hi - b.lo + 1))), left = (bi + frac) / bins.length * 100;
+    h += '<span class="vc-you' + (left > 62 ? ' flip' : '') + '" style="left:' + left.toFixed(2) + '%"><span>' + esc(youLabel) + '</span></span>';
+  }
+  return h + '</div><div class="vc-x">' + bins.map((b) => '<span>' + (b.tick ? esc(b.tick) : '') + '</span>').join('') + '</div></div>';
+}
+/** 出货时间线：每个 SSR/SP/UR 在第几抽，咲耶（UP/保底）单独标出来。抽数多时只画最近 2000 抽 */
+function timelineHTML(A) {
+  const span = 2000, from = Math.max(0, A.N - span), w = Math.max(1, A.N - from);
+  let h = '<div class="tl" role="img" aria-label="出货时间线">';
+  for (const [n, r, id, tg] of A.hits) {
+    if (n <= from) continue;
+    const up = /UP|保底/.test(tg || '') && id === SAKUYA.id, x = (n - from - 0.5) / w * 100;
+    h += '<span class="tl-t' + (r === 'UR' ? ' ur' : '') + (up ? ' up' : '') + '" style="left:' + x.toFixed(3) + '%" data-tip="' + esc('第 ' + nf(n) + ' 抽\n' + r + ' ' + hname(id) + (tg ? '（' + tg + '）' : '')) + '">' + (up ? '<span>' + esc(SAKUYA.name) + '</span>' : '') + '</span>';
+  }
+  return h + '</div><div class="tl-x"><span>第 ' + nf(from + 1) + ' 抽</span><span>第 ' + nf(A.N) + ' 抽</span></div>';
+}
+function renderGRep() {
+  const mode = S.g.mode, st = gState(), A = gActual(mode, st), key = gKey(mode, st);
+  const E = gExpect(mode, st, A), T = gTheory.key === key ? gTheory.data : null;
+  const tile = (v, t) => '<div class="rp-tile"><b>' + v + '</b><span>' + t + '</span></div>';
+  const legend = '<p class="rp-legend"><span><i class="sw"></i>实际</span><span><i class="ln"></i>理论</span></p>';
+  const opts = mode === 'sakuya' ? ' · ' + (st.full ? '已达成全集赏' : '未达成全集赏') + ' · ' + (st.pool === 'old' ? '瑶归召唤' : '旭华召唤') : '';
+  let h = '<div class="cd-head"><h2>抽卡统计</h2><button class="btn small" type="button" id="gp-x">关闭</button></div>' +
+    '<p class="hint">' + esc(G_MODE_NAMES[mode]()) + opts + ' · 共 ' + nf(A.N) + (mode === 'ten' ? ' 次十连十金' : ' 抽') + '（从上次「重新开始」算起）</p>';
+  if (mode === 'ten') {
+    h += '<div class="rp-tiles">' + tile(nf(A.N), '次十连十金') + tile(nf(A.cards), '位 SSR/SP') + tile(nf(A.distinct), '位不同的' + (T ? '（理论平均 ' + fmtN(T.distinct) + '）' : '')) +
+      tile(nf(A.cards - A.distinct), '位是重复的') + '</div>';
+    const pa = T ? pctAbove(T.distinctArr, A.distinct) : null;
+    h += '<p class="rp-luck">' + (T ? '出了 <b>' + nf(A.distinct) + '</b> 位不同的式神，按规则平均 ' + fmtN(T.distinct) + ' 位' + (pa != null ? '，比 ' + gPct(pa) + ' 的人多' : '') + '。' : '<span class="hint">理论值计算中…</span>') + '</p>';
+    h += '<p class="hint">' + (T ? '「理论」是按同样的选项从头模拟 ' + nf(T.per) + ' 次十连十金、重复 ' + nf(T.reps) + ' 遍取的平均。' : '「理论」值计算中…') + '</p>';
+  } else {
+    h += '<div class="rp-tiles">' + tile(nf(A.N), '抽') + tile(nf(A.ss), '个 SSR/SP' + (mode === 'sakuya' && A.forced ? '（其中 ' + nf(A.forced) + ' 个是保底送的）' : '')) +
+      (mode === 'sakuya' ? tile(A.up ? '第 ' + nf(A.up) + ' 抽' : '还没出', SAKUYA.name) + tile(nf(A.pity), '次 ' + SAKUYA.pity + ' 抽必出（理论 ' + fmtN(E.pity) + '）')
+        : tile(nf(A.maxD), '最长连续这么多抽没出 SSR/SP' + (T && !T.scaled ? '（理论平均 ' + Math.round(T.maxD) + '）' : ''))) +
+      tile(nf(A.ur), '个 UR（理论 ' + fmtN(E.cnt.UR) + '）') + '</div>';
+    h += '<p class="rp-luck">' + gLuckLine(mode, A, E) + '</p>';
+    if (mode === 'sakuya') h += '<p class="rp-luck">' + sakuyaLine(A) + '</p>';
+    h += '<p class="hint">「理论」都按你实际这一路算，不受什么时候停手影响：' + (mode === 'sakuya' ? '被 ' + SAKUYA.pity + ' 抽必出或保底强制的那几抽一定出货，不算运气，其余' : '') + '每抽按公示概率' +
+      (mode === 'normal' ? '；「最长没出」是按同样抽数从头模拟的平均' : '') + '。图里画成线。' +
+      (A.cut ? ' 出货记录只保留最近 ' + nf(G_HIST_MAX) + ' 个 SSR/SP/UR，欧气、间隔和时间线只统计第 ' + nf(A.from + 1) + ' 抽以后；各稀有度用完整计数' + (mode === 'sakuya' ? '，保底次数按比例估' : '') + '。' : '') + '</p>';
+  }
+  if (mode === 'sakuya') {
+    const d = sakuyaDist(st.full), wd = st.full ? 30 : 50, bins = [];
+    for (let lo = 1; lo < d.floorN; lo += wd) {
+      const hi = Math.min(lo + wd - 1, d.floorN - 1); let p = 0; for (let t = lo; t <= hi; t++) p += d.pt[t];
+      bins.push({ lo, hi, p, name: '第 ' + lo + '～' + hi + ' 抽出', tick: hi % (wd * 3) === 0 ? String(hi) : '' });
+    }
+    bins.push({ lo: d.floorN, hi: d.floorN, p: d.pt[d.floorN], name: '第 ' + d.floorN + ' 抽保底', tick: String(d.floorN) });
+    h += '<section class="rp-sec"><h3>抽到' + esc(SAKUYA.name) + '要几抽</h3><p class="hint">灰条是所有人第几抽出' + esc(SAKUYA.name) + '的占比（按规则精确算的）：平均 ' + Math.round(d.mean) + ' 抽，一半人 ' + d.q50 + ' 抽内，九成人 ' + d.q90 + ' 抽内，' +
+      gPct(d.pt[d.floorN]) + ' 的人要吃 ' + d.floorN + ' 抽保底。每 ' + SAKUYA.pity + ' 抽一个台阶，是 ' + SAKUYA.pity + ' 抽必出带来的。蓝线是你。</p>' +
+      '<p class="rp-legend"><span><i class="sw dist"></i>所有人</span><span><i class="ln you"></i>你</span></p>' +
+      distChart(bins, A.up || Math.min(A.N, d.floorN), A.up ? '你：第 ' + A.up + ' 抽' : '你：已抽 ' + A.N + ' 抽', '抽到' + SAKUYA.name + '要几抽的分布') +
+      tableOf(['第几抽出', '占比', '累计'], bins.map((b) => [b.lo === b.hi ? String(b.lo) : b.lo + '～' + b.hi, gPct(b.p), gPct(d.cdf[b.hi])])) + '</section>';
+  }
+  if (mode !== 'ten') {
+    const gb = gapBins(mode);
+    h += '<section class="rp-sec"><h3>SSR/SP 出货间隔</h3><p class="hint">每个 SSR/SP 距上一个（或开始）隔了几抽，一共 ' + nf(A.nGaps) + ' 次' +
+      (mode === 'sakuya' ? '。连续 ' + (SAKUYA.pity - 1) + ' 抽没出时第 ' + SAKUYA.pity + ' 抽必出，所以最右边一栏特别高（理论上 ' + gPct(gb.probs[gb.probs.length - 1]) + ' 的出货是这么来的）' : '；常驻没有保底') +
+      (A.cur ? '。现在已经连续 ' + nf(A.cur) + ' 抽没出' : '') + '。</p>' + legend +
+      vChart(gb.cats, A.gaps, E.gaps, Math.max(1, A.nGaps), 'SSR/SP 出货间隔的分布', gb.tips, '次') +
+      tableOf(['间隔', '实际次数', '占比', '理论次数', '理论占比'], gb.cats.map((c, i) => [gb.tips[i], nf(A.gaps[i]), fmtPct(A.gaps[i] / Math.max(1, A.nGaps) * 100), fmtN(E.gaps[i]), gPct(gb.probs[i])])) + '</section>';
+    const span = Math.min(A.N, 2000);
+    h += '<section class="rp-sec"><h3>出货时间线</h3><p class="hint">' + (A.N > 2000 ? '最近 2,000 抽' : '全部 ' + nf(A.N) + ' 抽') + '里每个 SSR/SP/UR 出在第几抽，空白越长越非。</p>' +
+      '<p class="rp-legend"><span><i class="ln tk"></i>SSR/SP</span><span><i class="ring"></i>UR</span>' + (mode === 'sakuya' ? '<span><i class="ln tk ink"></i>' + esc(SAKUYA.name) + '（UP/保底）</span>' : '') + '</p>' +
+      timelineHTML(A) +
+      tableOf(['第几抽', '稀有度', '式神', '备注'], A.hits.filter((e) => e[0] > A.N - span).slice(-200).reverse().map(([n, r, id, tg]) => [nf(n), r, hname(id), tg || ''])) + '</section>';
+    const rows = [['UR', A.cnt.UR, E.cnt.UR, G.rates.UR], ['SSR/SP', A.ss, E.cnt.SS, G.rates.SSR + G.rates.SP], ['SR', A.cnt.SR, E.cnt.SR, G.rates.SR], ['R', A.cnt.R, E.cnt.R, G.rates.R]];
+    h += '<section class="rp-sec"><h3>各稀有度</h3><p class="hint">SSR/SP 里 SSR ' + nf(A.cnt.SSR) + ' 个、SP ' + nf(A.cnt.SP) + ' 个。' + (mode === 'sakuya' ? '理论按实际被强制出货的 ' + nf(A.forced) + ' 抽算（这几抽只会出 SSR/SP），所以 SSR/SP 会比公示概率多。' : '') + '</p>' +
+      '<div class="tblwrap"><table class="t"><tr><th>稀有度</th><th>实际</th><th>实际占比</th><th>理论</th><th>公示概率</th></tr>' +
+      rows.map(([r, a, e, pr]) => '<tr><td>' + r + '</td><td class="n">' + nf(a) + '</td><td class="n">' + fmtPct(a / Math.max(1, A.N) * 100) + '</td><td class="n">' + fmtN(e) + '</td><td class="n">' + +pr.toFixed(2) + '%</td></tr>').join('') + '</table></div></section>';
+  }
+  const dExp = mode === 'ten' ? (T ? T.distinct : null) : E.distinct;
+  h += '<section class="rp-sec"><h3>图鉴</h3><p class="hint">出过 <b>' + nf(A.distinct) + '</b> 位不同的 SSR/SP' + (dExp != null ? '（' + (mode === 'ten' ? '理论平均 ' : '按抽到的 SSR/SP 个数，理论平均 ') + fmtN(dExp) + ' 位）' : '') + (mode === 'sakuya' ? '，含 40 抽赠礼' : '') + '。' +
+    (A.dupes.length ? '重复最多的：' : '还没有重复的。') + '</p>' +
+    (A.dupes.length ? '<div class="coll">' + A.dupes.map(([id, c]) => '<span class="' + HERO[id][1] + '">' + esc(hname(id)) + '<em>×' + c + '</em></span>').join('') + '</div>' : '') + '</section>';
+  if (mode === 'sakuya') h += '<label class="chk rp-auto"><input type="checkbox" id="gp-auto"' + (S.ui.autoGRep !== false ? ' checked' : '') + '> 出' + esc(SAKUYA.name) + '后自动弹出这份统计</label>';
+  h += '<div class="cd-foot"><button class="btn" type="button" id="gp-x2">关闭</button></div>';
+  $('gdlg-body').innerHTML = h;
+}
+function openGRep() {
+  const mode = S.g.mode, st = gState(); if (!st.n) return;
+  const dlg = $('gdlg'), key = gKey(mode, st);
+  renderGRep();
+  if (typeof dlg.showModal === 'function') { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute('open', '');
+  dlg.scrollTop = 0;
+  if (mode === 'sakuya' || gTheory.key === key) return;    // 咲耶池的理论都是直接算的，不用模拟
+  if (gTheory.job) gTheory.job.cancelled = true;
+  gTheory = { key, data: null, job: null };
+  setTimeout(() => {
+    if (gTheory.key !== key) return;
+    gTheory.job = gSimulate(mode, st, (T) => {
+      if (gTheory.key !== key) return;
+      gTheory.data = T; gTheory.job = null;
+      if (dlg.open && gKey(S.g.mode, gState()) === key) { const sc = dlg.scrollTop; renderGRep(); dlg.scrollTop = sc; }
+    });
+  }, 30);
+}
+function closeGRep() { const d = $('gdlg'); hideTip(); if (typeof d.close === 'function') d.close(); else d.removeAttribute('open'); }
+wireTips($('gdlg'));
+$('gdlg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'gp-x' || b.id === 'gp-x2') closeGRep();
+});
+$('gdlg').addEventListener('change', (e) => { if (e.target.id === 'gp-auto') { S.ui.autoGRep = e.target.checked; save(); } });
+Object.assign(window.YuhunCore, { sakuyaDist, gActual, gExpect, gSimulate, gapBins, binomAbove, gTheory: () => gTheory,
+  gReport: () => { const m = S.g.mode, st = gState(), A = gActual(m, st); return { A, E: gExpect(m, st, A) }; } });
+
+/* ======================= 规则页 ======================= */
+function buildRules() {
+  const pct = (w, tot) => (w / tot * 100).toFixed(w / tot * 100 % 1 ? 1 : 0) + '%';
+  let mainRows = '';
+  for (let p = 1; p <= 6; p++) {
+    const cs = D.mains[p], tot = cs.reduce((a, c) => a + c.w, 0);
+    mainRows += '<tr><td>' + D.posCn[p - 1] + '</td><td>' + cs.map((c) => SK[c.k].name + ' ' + pct(c.w, tot)).join('，') + '</td><td>' + cs.map((c) => fmtMain(c.k, c.base) + ' → ' + fmtMain(c.k, c.base + D.growth[c.k][15])).join('，') + '</td></tr>';
+  }
+  const subRows = D.stats.map((s) => '<tr><td>' + s.name + '</td><td class="n">' + fmtMain(s.k, s.unit) + '</td><td class="n">' + fmtSub(s.k, s.unit * D.coef[0], true) + ' ~ ' + fmtSub(s.k, s.unit * D.coef[1], true) + '</td><td class="n">' + fmtSub(s.k, s.unit * 6, true) + '</td></tr>').join('');
+  const expRow = D.exp.map((e, i) => '<span><em>+' + i + '→' + (i + 1) + '</em>' + nf(e) + '</span>').join('');
+  const R = G.rates;
+  const cv = (t) => SAKUYA.curve[t].map(([c, v]) => (c + 1) + ' 抽起 ' + Math.round(v * 100) + '%').join('，');
+  $('rules').innerHTML =
+    '<div class="panel"><h3>御魂怎么生成</h3><ul>' +
+    '<li>主属性：1、3、5 号位固定是攻击、防御、生命；2、4、6 号位按下表的概率随机（<code>equip_init</code> 随机6星御魂的 <code>base_attr</code> 权重）。官方概率公示写的是「特殊属性」（速度、命中、抵抗、暴击、暴伤）合计 10%、其余 90%，和表一致。</li>' +
+    '<li>初始副属性 ' + D.initCount[0] + '~' + D.initCount[1] + ' 条，条数等概率；珍品固定 ' + D.zhenpinCount[0] + ' 条。11 种副属性等概率、不重复（<code>equip_attr</code> 第 6 行，权重都是 10）。官方公示按类别写成攻击类 36%、防御类 36%、功能类 28%（分别含 4、4、3 种），和 11 种等概率的 36.4%、36.4%、27.3% 取整后一致。</li>' +
+    '<li>每条副属性一次成长 = 单位值 × 系数，系数在 ' + D.coef[0] + '~' + D.coef[1] + ' 之间均匀随机（<code>rang_rand</code>）。</li>' +
+    '<li>副属性可以和主属性相同。客户端的生成函数不排除主属性，官方活动的定制御魂里也有「速度主属性 + 速度副属性」的 2 号位。</li>' +
+    '<li>首领御魂（' + D.sets.filter((s) => s.boss).length + ' 种，只有 2 件套效果）每件另带 1 条「固有属性」，从 ' + D.fixedAttrs.length + ' 种里等概率随机（<code>rune_random_attr</code>，权重都是 ' + D.fixedAttrs[0].w + '）：' +
+      D.fixedAttrs.map((f) => SK[f.k].name + ' ' + fmtMain(f.k, f.v)).join('、') + '。固有属性不参与强化，直接加到式神面板上。</li>' +
+    '</ul><div class="tblwrap"><table class="t"><tr><th>位置</th><th>主属性概率</th><th>+0 → +15</th></tr>' + mainRows + '</table></div></div>' +
+    '<div class="panel"><h3>强化</h3><ul>' +
+    '<li>强化到 +' + D.enhLevels.join('、+') + ' 时各追加一次副属性（<code>equip_upgrade</code> 这几级的 <code>rattr_id</code> 指向 <code>equip_attr</code> 1006）。</li>' +
+    '<li>副属性不到 4 条时，在 11 种副属性里等概率抽一种（官方公示写作攻击类 36%、防御类 36%、功能类 28%）：抽到还没有的就新增一条，抽到已有的就提升那一条。所以初始 3 条的御魂，+3 有 3/11 的概率不新增、而是提升已有的一条，到 +15 也可能只有 3 条。满 4 条后在已有的 4 条里随机提升一条，每条 1/4，和之前命中过哪条无关。</li>' +
+    '<li>用一个账号在本地客户端里缓存的 6,843 件六星御魂（其中 +15 的 2,359 件）核对过：强化前只有 2 条时，提升已有的占 18.7%（理论 2/11 = 18.2%）；只有 3 条时占 27.2%（理论 3/11 = 27.3%）；初始 3 条的 +15 里，第 4 条在 +3 就出现的占 73.4%（理论 8/11 = 72.7%），还有 2 件到 +15 只有 3 条。</li>' +
+    '<li>「自定义…」可以指定套装、主属性、每条副属性的数值和每一级强化命中哪条，但要合乎上面的规则：不足 4 条时才能新增，满 4 条只能提升已有的，每次的数值在单位值的 0.8~1.0 倍之间。没指定的部分照常随机。一次创建的件数可以点 1/10/100/1000/1万，也可以自己填，只要不超过仓库剩下的位置。</li>' +
+    '<li>批量强化（多选或筛选结果一起强化、买 10 件以上直接 +15）完会弹出「批量强化统计」。里面的「理论」是按当时的强化规则，把同一批御魂从强化前的样子重新强化 20 遍取的平均（批次大就少重复几遍，最多模拟约 12 万件次）。' +
+      '「欧气」看单条成长到 +4 及以上的件数（件数太少时换成 +3）：和理论差在 1 个标准差以内算正常，1~2 个算略欧/略非，超过 2 个算明显偏欧/偏非（标准差算上了这批件数的随机波动，和理论值本身是模拟出来的误差）。</li>' +
+    '<li>强化必定成功（<code>successrate</code> 都是 1）。所以一条副属性最多成长 6 次：初始 4 条的御魂，指定的一条 5 次全中是 1/1024 ≈ 0.1%。</li>' +
+    '<li><b>可选：「动态权重」</b>（御魂页「买御魂」里的「强化规则」，默认关；现在是<b>' + RULE_NAMES[ENH_RULE] + '</b>）。满 4 条后，每条副属性按出现过的次数加权：初始算 1 次，之后每成长 1 次加 1，被提升的概率 = 这条的次数 ÷ 4 条次数之和，中得越多越容易再中；不足 4 条时和默认一样。' +
+      '这是玩家间流传的说法，客户端配置表里没有（<code>equip_attr</code> 1006 的 11 种权重都是 10）。按它算，初始 4 条的御魂指定一条 5 次全中是 1/56 ≈ 1.8%（默认 1/1024），4 条里任意一条 5 次全中是 1/14 ≈ 7.1%（默认 1/256 ≈ 0.4%）。' +
+      '强化台、批量强化、买完直接 +15 都按当前规则；已经强化过的不会重算。想拿自己的强化记录检验，可以用仓库里的 <code>tools/yuhun_cache_check.py --before</code>。</li>' +
+    '<li>经验：每级所需经验见下表，+0 到 +15 一共 ' + nf(EXP_FULL) + '。一只' + esc(D.qjg.name) + '给 ' + nf(D.qjg.exp) + ' 经验、收 ' + nf(D.qjg.gold) + ' 金币；用贪吃鬼的经验每点收 ' + D.glutGold + ' 金币。</li>' +
+    '</ul><div class="chips">' + expRow + '</div>' +
+    '<div class="tblwrap" style="margin-top:10px"><table class="t"><tr><th>副属性</th><th>单位值</th><th>一次成长</th><th>6 次全中最多</th></tr>' + subRows + '</table></div></div>' +
+    '<div class="panel"><h3>召唤</h3><ul>' +
+    '<li>公示概率（<code>choukagailv</code>）：R ' + R.R + '%，SR ' + R.SR + '%，SSR ' + R.SSR + '%，SP ' + R.SP + '%，UR ' + R.UR + '%。神秘的符咒、勾玉、现世符咒一样。</li>' +
+    '<li>' + SAKUYA.name + '「' + esc(SAKUYA.title) + '」' + esc(SAKUYA.time) + '：出 SSR/SP 时先按当前指定概率判定是不是' + SAKUYA.name + '。达成全集赏：' + cv('1') + '，第 ' + SAKUYA.floor['1'] + ' 抽必出；没达成：' + cv('2') + '，第 ' + SAKUYA.floor['2'] + ' 抽必出。每人只享受一次 UP。</li>' +
+    '<li>活动期间 ' + SAKUYA.pity + ' 抽内必出 SSR/SP；累计 40 抽送一位随机 SSR/SP（图鉴里全部 SSR/SP，两面佛除外）。</li>' +
+    '<li>旭华召唤只出 2020 年 5 月之后的 SSR/SP，瑶归召唤只出之前的（<code>Constant</code> 12244 / 12245 的名单），两边都含' + SAKUYA.name + '。R、SR、UR 两边一样。</li>' +
+    '<li>同一稀有度内每位式神概率相同：单个式神概率 = 该稀有度总概率 ÷ 该稀有度式神数。客户端里没有给单个式神的召唤权重（式神表的 <code>catchRate</code> 是百鬼夜行撒豆子的命中率），官方概率公示只写到各稀有度的总概率。</li>' +
+    '<li>十连十金：第一位自选（' + esc(G.ten.pickNote) + '）或随机（' + esc(G.ten.randomNote) + '），后面九位依次从「一载」到「九载」的式神里随机（<code>gamble_10_gold_hero_range</code>）。</li>' +
+    '<li>召唤页的「统计画像」统计当前这一项从「重新开始」以来的全部召唤（出' + SAKUYA.name + '时也会自动弹出）。出货间隔、各稀有度、图鉴的「理论」按你实际这一路算（保底强制的那几抽一定出货，其余按公示概率）；' + SAKUYA.name + '第几抽出用上面的规则精确递推（每抽 SSR/SP 1.25%、' + SAKUYA.pity + ' 抽必出、指定概率按累计召唤次数、' + SAKUYA.floor['1'] + '/' + SAKUYA.floor['2'] + ' 抽保底）。' +
+      '「欧气」只看不是被保底强制的那些抽（连续 59 抽没出后的第 60 抽、' + SAKUYA.floor['1'] + '/' + SAKUYA.floor['2'] + ' 抽保底都不算，40 抽赠礼也不算）：出了几个 SSR/SP，放到每抽 1.25% 的二项分布里看比百分之几的人多，84% 以上算略欧、98% 以上算明显偏欧，16% 以下、2% 以下算略非、明显偏非（相当于正态的 ±1、±2 个标准差）。</li>' +
+    '</ul></div>' +
+    '<div class="panel"><h3>客户端和官方公示里都没有、沙盒自己定的</h3><ul>' +
+    '<li>珍品六星御魂「更容易出现适配副属性」的倾向在服务器，沙盒的珍品只保证初始 4 条。</li>' +
+    '<li>60 抽必出时出 SSR 还是 SP，按两者公示概率 4:1 分；UR 不算 SSR/SP，不会重置 60 抽计数。</li>' +
+    '<li>十连十金表里还有一组权重（第一位 5，其余 13），用途不明，沙盒没有用到。</li>' +
+    '</ul><p class="muted">数据来自' + esc(D.built) + '；强化规则和副属性类别概率另见官方<a href="https://yys.163.com/m/news/notice/20171124/25369_665793.html" target="_blank" rel="noopener">《随机抽取类玩法概率公示》</a>。客户端更新后在仓库里运行 <code>python3 tools/build_sandbox.py</code> 重新生成这个页面。</p></div>';
+}
+
+/* ======================= 标签页 / 启动 ======================= */
+function showTab(t) {
+  S.ui.tab = t;
+  for (const [tab, panel, key] of [['tab-yh', 'p-yh', 'yh'], ['tab-g', 'p-g', 'g'], ['tab-rules', 'p-rules', 'rules']]) {
+    $(tab).setAttribute('aria-selected', String(key === t)); $(panel).hidden = key !== t;
+  }
+  if (t === 'g') renderGacha();
+}
+$('tab-yh').onclick = () => { showTab('yh'); save(); };
+$('tab-g').onclick = () => { showTab('g'); save(); };
+$('tab-rules').onclick = () => { showTab('rules'); save(); };
+function renderAll() { renderTiles(); renderRecords(); renderBench(); renderStore(); }
+
+$('src').textContent = '数据：' + D.built;
+buildRules();
+renderAll();                                   // 先画出页面（显示「正在读取存档」）
+loadState().then((st) => {
+  if (st) { S = st; }
+  rebuildIndex();
+  if (!S.inv.length && S.st.bought === 0) {
+    // 第一次打开：放 6 个例子（一套随机的破势），让页面不是空的
+    const ex = SETS[300030] ? 300030 : NORMAL_SETS[0].id;
+    const got = [];
+    for (let p = 1; p <= 6; p++) { const y = genYuhun(ex, p, null, false); y.id = ++S.seq; got.push(y); }
+    addItems(got);
+    sel = got[1].id;
+    S.ui.ex = true;
+  }
+  if (!sel && S.inv.length) sel = S.inv[S.inv.length - 1].id;
+  loaded = true;
+  showSaveMode();
+  if (loadErr) toast('本地数据库里的存档这次没读出来，原存档没动；这次先用普通存档');
+  buildBuy(); buildFilters(); buildRules();     // 规则页写着当前的强化规则，读完存档再画一次
+  renderAll();
+  showTab(location.hash === '#summon' ? 'g' : location.hash === '#rules' ? 'rules' : (S.ui.tab || 'yh'));
+  if (rewriteAll) save();                      // 旧存档搬进数据库
+});
+})();
+</script>
+
+</body>
+</html>
