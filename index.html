@@ -421,8 +421,8 @@ code { font-family: var(--font-mono); font-size: 12px; background: var(--surface
             <button type="button" data-v="10000" aria-pressed="false">1万</button>
           </div></div>
           <div class="field"><span>强化规则（副属性满 4 条后提升哪条）</span><div class="seg" id="b-rule">
-            <button type="button" data-v="flat" aria-pressed="true">各 1/4（默认）</button>
-            <button type="button" data-v="dyn" aria-pressed="false">动态权重</button>
+            <button type="button" data-v="dyn" aria-pressed="true">按次数加权（默认）</button>
+            <button type="button" data-v="flat" aria-pressed="false">各 1/4</button>
           </div><p class="hint" id="b-rule-note"></p></div>
           <label class="chk"><input type="checkbox" id="b-max"> 买完直接强化到 +15</label>
           <div class="go"><button class="btn primary" id="b-go" type="button">买</button><button class="btn" id="b-custom" type="button">自定义…</button></div>
@@ -572,13 +572,16 @@ function genYuhun(setId, pos, main, zhenpin, fx) {
 function rollFixed() { return pickW(D.fixedAttrs.map((f, i) => [i, f.w])); }
 function fxText(y, plus) { const f = D.fixedAttrs[y.fx]; return f ? SK[f.k].name + ' ' + (plus ? '+' : '') + fmtMain(f.k, f.v) : ''; }
 /** 强化规则：副属性满 4 条以后，每次追加选哪条提升。
-    'flat' 各 1/4（默认）：客户端 equip_attr 1006 的 11 种权重都是 10，过滤到已有的 4 条就是等概率，和之前中过几次无关。
-    'dyn'  动态权重（可选）：每条按「出现过的次数」加权——初始算 1 次，之后每成长 1 次加 1，概率 = 这条的次数 ÷ 4 条次数之和，
-           中得越多越容易再中。这是玩家间流传的说法，客户端里没有；tools/yuhun_cache_check.py --before 能拿自己的强化记录比较这两种。
+    'dyn'  按次数加权（默认）：每条按「出现过的次数」加权——初始算 1 次，之后每成长 1 次加 1，概率 = 这条的次数 ÷ 4 条次数之和，
+           中过的更容易再中（等于从成长记录里随机挑一条；玩家间叫「动态权重」）。客户端里没有，是拿本地缓存强化前后对比测出来的：
+           2026-10-15 一个号初始 4 条的 +0 御魂强化 277 次（tools/yuhun_cache_check.py --before），
+           拟合「权重 = a + 被强化命中次数」得 a = 1.00（95% 0.75~2），各 1/4 被排除。
+           初始第 4 条被中得略多（94 次，预期 73.5），原因没确定，这里没算进去。
+    'flat' 各 1/4（可选，以前的默认）：照客户端 equip_attr 1006 的权重（11 种都是 10）字面推的——过滤到已有的 4 条就是等概率。
     不足 4 条时两种规则一样（11 种等概率，本地缓存核对过是 2/11、3/11）。 */
-let ENH_RULE = 'flat';
-const RULE_NAMES = { flat: '各 1/4', dyn: '动态权重' };
-function setEnhRule(r) { ENH_RULE = r === 'dyn' ? 'dyn' : 'flat'; return ENH_RULE; }
+let ENH_RULE = 'dyn';
+const RULE_NAMES = { dyn: '按次数加权', flat: '各 1/4' };
+function setEnhRule(r) { ENH_RULE = r === 'flat' ? 'flat' : 'dyn'; return ENH_RULE; }
 /** 每条副属性出现过几次（初始 1 次 + 成长次数） */
 function rollCounts(y) { const c = {}, sb = y.sb; for (let i = 0; i < sb.length; i += 3) c[sb[i]] = (c[sb[i]] || 0) + 1; return c; }
 /** 下一次追加副属性的候选和权重（pickW 用的 [属性, 整数权重]） */
@@ -599,7 +602,7 @@ function nextHitProbs(y) {
 }
 /** 升 1 级；到 +3/+6/+9/+12/+15 追加一次副属性：
     不足 4 条时在 11 种里等概率抽（官方公示：攻击类 36%、防御类 36%、功能类 28%），抽到没有的就新增，抽到已有的就提升那一条；
-    满 4 条时在已有 4 条里提升一条（按上面的强化规则：默认各 1/4，可选动态权重）。
+    满 4 条时在已有 4 条里提升一条（按上面的强化规则：默认按次数加权，可选各 1/4）。
     「不足 4 条也可能提升已有的」是拿本地客户端缓存的御魂核对出来的：2 条时 18.7%（2/11=18.2%），3 条时 27.2%（3/11=27.3%） */
 function levelUp(y, force) {
   if (y.lv >= 15) return null;
@@ -742,7 +745,7 @@ const newGacha = () => ({
   ten: { n: 0, first: 0, cnt: {}, coll: {}, hist: [], last: [] },
 });
 const newState = () => ({ v: 2, seq: 0, newFrom: 0, inv: [], st: { bought: 0, maxed: 0, exp: 0 }, g: newGacha(),
-  ui: { bset: 'rand', bpos: 0, bmain: '', bkind: 0, bnum: 1, bmax: false, erule: 'flat', fset: 'all', fpos: 'all', fmain: 'all', fsub: 'all', flv: 'all', fcnt: 'all', ffx: 'all', bfx: '', fsort: 'new', flock: false, detail: true, tab: 'yh', autoRep: true, repRole: 'out', autoGRep: true } });
+  ui: { bset: 'rand', bpos: 0, bmain: '', bkind: 0, bnum: 1, bmax: false, erule: 'dyn', eruleV: 2, fset: 'all', fpos: 'all', fmain: 'all', fsub: 'all', flv: 'all', fcnt: 'all', ffx: 'all', bfx: '', fsort: 'new', flock: false, detail: true, tab: 'yh', autoRep: true, repRole: 'out', autoGRep: true } });
 let S = newState();
 const INDEX = new Map();     // id -> 御魂
 let invVer = 0;              // 仓库内容一变就 +1（筛选结果、仓库之最按它缓存）
@@ -767,6 +770,7 @@ const LS_KEY = 'yuhun-sandbox-v1';
 const DB_NAME = 'yuhun-sandbox';
 const CHUNK = 1000;
 let idb = null, useLS = false, loadErr = false, lsWorks = true, fullToastAt = 0;
+let ruleMigrated = false;     // 旧存档的强化规则这次从「各 1/4」切成了「按次数加权」
 /** localStorage 能不能写（隐私模式、禁用网站数据时会直接报错） */
 function lsProbe() { try { const k = LS_KEY + '-probe'; localStorage.setItem(k, '1'); localStorage.removeItem(k); return true; } catch (e) { return false; } }
 const dirtyChunks = new Set();
@@ -813,7 +817,11 @@ function fromParts(meta, inv) {
   for (const y of inv) if (SETS[y.s].boss && !(y.fx >= 0 && D.fixedAttrs[y.fx])) y.fx = rollFixed();
   inv.sort((a, b) => a.id - b.id);
   const seq = Math.max(meta.seq || 0, inv.length ? inv[inv.length - 1].id : 0);
-  return { v: 2, seq, newFrom: meta.newFrom != null ? meta.newFrom : seq, st: Object.assign(base.st, meta.st || {}), g, ui: Object.assign(base.ui, meta.ui || {}), inv };
+  const ui = Object.assign(base.ui, meta.ui || {});
+  // 2026-10-15 默认强化规则从「各 1/4」改成实测的「按次数加权」：以前的存档统一切过去一次（想用各 1/4 可以再切回）。
+  // 看的是存档里原本有没有 eruleV（合并后的 ui 里 newState 已经带了 eruleV: 2）
+  if (!((meta.ui || {}).eruleV >= 2)) { if (ui.erule !== 'dyn') ruleMigrated = true; ui.erule = 'dyn'; ui.eruleV = 2; }
+  return { v: 2, seq, newFrom: meta.newFrom != null ? meta.newFrom : seq, st: Object.assign(base.st, meta.st || {}), g, ui, inv };
 }
 function restore(txt) {
   const o = JSON.parse(txt);
@@ -1041,8 +1049,8 @@ function wireSetSearch(qEl, selEl, noteEl, mode, getCur, pick) {
 /** 「强化规则」下面那行说明 */
 function ruleNote() {
   $('b-rule-note').textContent = ENH_RULE === 'dyn'
-    ? '满 4 条后每条按出现过的次数加权（初始 1 次 + 已成长次数），中得越多越容易再中；不足 4 条时不变。玩家间的说法，客户端里没有。'
-    : '满 4 条后每次在 4 条里等概率提升一条，和之前中过几次无关（客户端配置表的写法）。';
+    ? '满 4 条后每条按出现过的次数加权（初始 1 次 + 已成长次数），中过的更容易再中；不足 4 条时 11 种等概率。客户端里没有，是拿强化记录实测的，见「规则」页。'
+    : '满 4 条后每次在 4 条里等概率提升一条，和之前中过几次无关。这是以前的默认，和实测对不上，留着对比用。';
 }
 /** 概率显示：整数就不带小数 */
 function pctTxt(p) { const v = p * 100; return (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1)) + '%'; }
@@ -1055,7 +1063,7 @@ function buildBuy() {
   if (!$('b-set').value) { S.ui.bset = 'rand'; $('b-set').value = 'rand'; }
   setPressed($('b-pos'), S.ui.bpos); setPressed($('b-kind'), S.ui.bkind); setPressed($('b-num'), S.ui.bnum);
   $('b-max').checked = !!S.ui.bmax;
-  S.ui.erule = setEnhRule(S.ui.erule);           // 旧存档没有这一项 → 默认各 1/4
+  S.ui.erule = setEnhRule(S.ui.erule);           // 旧存档没有这一项 → 默认按次数加权
   setPressed($('b-rule'), S.ui.erule); ruleNote();
   const tot = D.fixedAttrs.reduce((a, f) => a + f.w, 0);
   $('b-fx').innerHTML = '<option value="">随机（6 种各 ' + Math.round(D.fixedAttrs[0].w / tot * 1000) / 10 + '%）</option>' +
@@ -1421,7 +1429,7 @@ function renderCustom() {
       if (st.known) {
         const pool = st.have.length < 4 ? D.stats.map((x) => x.k) : st.have;
         opts += pool.map((k) => opt(k, (st.have.includes(k) ? '提升 ' : '新增 ') + SK[k].name, s.k)).join('');
-        note = s.k === 'rand' ? (st.have.length < 4 ? '随机：11 种里抽，没有的新增、已有的提升' : ENH_RULE === 'dyn' ? '随机：按「动态权重」，出现过的次数越多越容易中' : '随机：已有的 4 条各 1/4') : '可填 ' + rangeText(s.k, true) + '，空着就随机';
+        note = s.k === 'rand' ? (st.have.length < 4 ? '随机：11 种里抽，没有的新增、已有的提升' : ENH_RULE === 'dyn' ? '随机：按出现过的次数加权，中过的更容易再中' : '随机：已有的 4 条各 1/4') : '可填 ' + rangeText(s.k, true) + '，空着就随机';
       } else note = '上一级是随机新增的，不知道这时有哪几条，只能随机';
       const fixed = s.k !== 'rand';
       h += '<div class="cd-row"><span class="cd-idx">+' + st.lv + '</span><select data-f="sk" data-i="' + st.j + '"' + (st.known ? '' : ' disabled') + '>' + opts + '</select>' +
@@ -2577,14 +2585,15 @@ function buildRules() {
     '</ul><div class="tblwrap"><table class="t"><tr><th>位置</th><th>主属性概率</th><th>+0 → +15</th></tr>' + mainRows + '</table></div></div>' +
     '<div class="panel"><h3>强化</h3><ul>' +
     '<li>强化到 +' + D.enhLevels.join('、+') + ' 时各追加一次副属性（<code>equip_upgrade</code> 这几级的 <code>rattr_id</code> 指向 <code>equip_attr</code> 1006）。</li>' +
-    '<li>副属性不到 4 条时，在 11 种副属性里等概率抽一种（官方公示写作攻击类 36%、防御类 36%、功能类 28%）：抽到还没有的就新增一条，抽到已有的就提升那一条。所以初始 3 条的御魂，+3 有 3/11 的概率不新增、而是提升已有的一条，到 +15 也可能只有 3 条。满 4 条后在已有的 4 条里随机提升一条，每条 1/4，和之前命中过哪条无关。</li>' +
+    '<li>副属性不到 4 条时，在 11 种副属性里等概率抽一种（官方公示写作攻击类 36%、防御类 36%、功能类 28%）：抽到还没有的就新增一条，抽到已有的就提升那一条。所以初始 3 条的御魂，+3 有 3/11 的概率不新增、而是提升已有的一条，到 +15 也可能只有 3 条。满 4 条后在已有的 4 条里提升一条：每条按出现过的次数加权，初始算 1 次、之后每成长 1 次加 1，被提升的概率 = 这条的次数 ÷ 4 条次数之和，所以中过的更容易再中。</li>' +
     '<li>用一个账号在本地客户端里缓存的 6,843 件六星御魂（其中 +15 的 2,359 件）核对过：强化前只有 2 条时，提升已有的占 18.7%（理论 2/11 = 18.2%）；只有 3 条时占 27.2%（理论 3/11 = 27.3%）；初始 3 条的 +15 里，第 4 条在 +3 就出现的占 73.4%（理论 8/11 = 72.7%），还有 2 件到 +15 只有 3 条。</li>' +
+    '<li>满 4 条以后的规则客户端里没有（<code>equip_attr</code> 1006 的 11 种权重都是 10，照字面推像是各 1/4），是拿一个账号强化前后的本地缓存对比测出来的：初始 4 条的 +0 御魂 101 件强到 +6、其中 72 件再强到 +9，一共 277 次强化。' +
+      '+6 又中 +3 那条的 40/101 = 39.6%（按次数加权是 2/5 = 40%，各 1/4 是 25%）；+3、+6 中同一条的，+9 又中它 13/29 = 44.8%（预测 50%）；中两条不同的，+9 落在 +6 那条、+3 那条、另外两条是 14 / 16 / 13 次（预测各 1/3）。按各 1/4，「又中」偶然这么多的概率大约十万分之二。</li>' +
     '<li>「自定义…」可以指定套装、主属性、每条副属性的数值和每一级强化命中哪条，但要合乎上面的规则：不足 4 条时才能新增，满 4 条只能提升已有的，每次的数值在单位值的 0.8~1.0 倍之间。没指定的部分照常随机。一次创建的件数可以点 1/10/100/1000/1万，也可以自己填，只要不超过仓库剩下的位置。</li>' +
     '<li>批量强化（多选或筛选结果一起强化、买 10 件以上直接 +15）完会弹出「批量强化统计」。里面的「理论」是按当时的强化规则，把同一批御魂从强化前的样子重新强化 20 遍取的平均（批次大就少重复几遍，最多模拟约 12 万件次）。' +
       '「欧气」看单条成长到 +4 及以上的件数（件数太少时换成 +3）：和理论差在 1 个标准差以内算正常，1~2 个算略欧/略非，超过 2 个算明显偏欧/偏非（标准差算上了这批件数的随机波动，和理论值本身是模拟出来的误差）。</li>' +
-    '<li>强化必定成功（<code>successrate</code> 都是 1）。所以一条副属性最多成长 6 次：初始 4 条的御魂，指定的一条 5 次全中是 1/1024 ≈ 0.1%。</li>' +
-    '<li><b>可选：「动态权重」</b>（御魂页「买御魂」里的「强化规则」，默认关；现在是<b>' + RULE_NAMES[ENH_RULE] + '</b>）。满 4 条后，每条副属性按出现过的次数加权：初始算 1 次，之后每成长 1 次加 1，被提升的概率 = 这条的次数 ÷ 4 条次数之和，中得越多越容易再中；不足 4 条时和默认一样。' +
-      '这是玩家间流传的说法，客户端配置表里没有（<code>equip_attr</code> 1006 的 11 种权重都是 10）。按它算，初始 4 条的御魂指定一条 5 次全中是 1/56 ≈ 1.8%（默认 1/1024），4 条里任意一条 5 次全中是 1/14 ≈ 7.1%（默认 1/256 ≈ 0.4%）。' +
+    '<li>强化必定成功（<code>successrate</code> 都是 1）。所以一条副属性最多成长 6 次：初始 4 条的御魂，指定的一条 5 次全中是 1/56 ≈ 1.8%（各 1/4 的话是 1/1024 ≈ 0.1%），4 条里任意一条 5 次全中是 1/14 ≈ 7.1%（各 1/4 是 1/256 ≈ 0.4%）。</li>' +
+    '<li><b>可选：「各 1/4」</b>（御魂页「买御魂」里的「强化规则」；现在是<b>' + RULE_NAMES[ENH_RULE] + '</b>）。以前的默认：满 4 条后 4 条等概率，和之前中过几次无关，是照 <code>equip_attr</code> 1006 的权重字面推的，和实测对不上，留着对比用。' +
       '强化台、批量强化、买完直接 +15 都按当前规则；已经强化过的不会重算。想拿自己的强化记录检验，可以用仓库里的 <code>tools/yuhun_cache_check.py --before</code>。</li>' +
     '<li>经验：每级所需经验见下表，+0 到 +15 一共 ' + nf(EXP_FULL) + '。一只' + esc(D.qjg.name) + '给 ' + nf(D.qjg.exp) + ' 经验、收 ' + nf(D.qjg.gold) + ' 金币；用贪吃鬼的经验每点收 ' + D.glutGold + ' 金币。</li>' +
     '</ul><div class="chips">' + expRow + '</div>' +
@@ -2600,6 +2609,7 @@ function buildRules() {
       '「欧气」只看不是被保底强制的那些抽（连续 59 抽没出后的第 60 抽、' + SAKUYA.floor['1'] + '/' + SAKUYA.floor['2'] + ' 抽保底都不算，40 抽赠礼也不算）：出了几个 SSR/SP，放到每抽 1.25% 的二项分布里看比百分之几的人多，84% 以上算略欧、98% 以上算明显偏欧，16% 以下、2% 以下算略非、明显偏非（相当于正态的 ±1、±2 个标准差）。</li>' +
     '</ul></div>' +
     '<div class="panel"><h3>客户端和官方公示里都没有、沙盒自己定的</h3><ul>' +
+    '<li>满 4 条后「按次数加权」是实测的（见上面「强化」），客户端里没有。实测里初始第 4 条（服务器记录里排最后的那条初始副属性，游戏界面上看不出是哪条）被中得比预期多一点（277 次里 94 次，预期 73.5），原因没确定，沙盒没算进去。</li>' +
     '<li>珍品六星御魂「更容易出现适配副属性」的倾向在服务器，沙盒的珍品只保证初始 4 条。</li>' +
     '<li>60 抽必出时出 SSR 还是 SP，按两者公示概率 4:1 分；UR 不算 SSR/SP，不会重置 60 抽计数。</li>' +
     '<li>十连十金表里还有一组权重（第一位 5，其余 13），用途不明，沙盒没有用到。</li>' +
@@ -2638,10 +2648,11 @@ loadState().then((st) => {
   loaded = true;
   showSaveMode();
   if (loadErr) toast('本地数据库里的存档这次没读出来，原存档没动；这次先用普通存档');
+  if (ruleMigrated) toast('强化规则改成了实测的「按次数加权」（满 4 条后中过的更容易再中）；想用以前的「各 1/4」，在买御魂里切回');
   buildBuy(); buildFilters(); buildRules();     // 规则页写着当前的强化规则，读完存档再画一次
   renderAll();
   showTab(location.hash === '#summon' ? 'g' : location.hash === '#rules' ? 'rules' : (S.ui.tab || 'yh'));
-  if (rewriteAll) save();                      // 旧存档搬进数据库
+  if (rewriteAll || ruleMigrated) save();      // 旧存档搬进数据库 / 记下规则已切换
 });
 })();
 </script>
